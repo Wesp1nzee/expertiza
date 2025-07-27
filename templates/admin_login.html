@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; font-src https://cdnjs.cloudflare.com; connect-src 'self';">
+    <title>Admin Panel Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/admin_login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1><i class="fas fa-lock"></i> Админ панель</h1>
+            <p>Пройдите аутентификацию</p>
+        </div>
+        
+        <form id="loginForm">
+            <input type="hidden" id="csrfToken" name="csrfToken">
+            
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="username" placeholder="Имя пользователя администратора" autocomplete="username" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-key"></i>
+                <input type="password" id="password" placeholder="Ваш пароль" autocomplete="current-password" required>
+            </div>
+            
+            <button type="submit" class="btn">
+                Войти <i class="fas fa-fingerprint"></i>
+            </button>
+            
+            <div class="error-message" id="errorMessage">
+                Неверные учетные данные. Пожалуйста, попробуйте снова.
+            </div>
+        </form>
+    </div>
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        async function fetchCsrfToken() {
+            try {
+                const response = await fetch('/api/v1/csrf-token', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('CSRF token fetch failed');
+                const data = await response.json();
+                console.log('CSRF Token:', data.token);
+                document.getElementById('csrfToken').value = data.token;
+            } catch (error) {
+                console.error('CSRF Error:', error);
+                errorMessage.textContent = 'Ошибка безопасности. Перезагрузите страницу.';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            errorMessage.style.display = 'none';
+            fetchCsrfToken();
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.value = input.value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            });
+        });
+
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = loginForm.querySelector('button');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
+            submitBtn.disabled = true;
+            errorMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/v1/admin-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.getElementById('csrfToken').value
+                    },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    throw new Error('Неверные учетные данные');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Ошибка сервера');
+                }
+                window.location.href = '/admin/dashboard';
+                
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+                
+                await fetchCsrfToken();
+                
+                document.getElementById('password').value = '';
+            } finally {
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        Object.freeze(document);
+    </script>
+</body>
+</html>
