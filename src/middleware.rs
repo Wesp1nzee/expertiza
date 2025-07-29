@@ -1,11 +1,10 @@
-use redis::AsyncCommands;
 use axum::{
     extract::{Request},
         http::{
         header::{CONTENT_SECURITY_POLICY, X_CONTENT_TYPE_OPTIONS, X_FRAME_OPTIONS, X_XSS_PROTECTION},
         HeaderValue, StatusCode,
     },
-    response::{Response, IntoResponse},
+    response::Response,
     middleware::{Next},
 };
 use std::{
@@ -116,40 +115,4 @@ pub async fn rate_limit_middleware(
     
     drop(store);
     Ok(next.run(request).await)
-}
-
-
-pub async fn csrf_protection_middleware(
-    req: Request,
-    next: Next,
-) -> Result<impl IntoResponse, StatusCode> {
-
-    if req.method() == axum::http::Method::POST {
-        let headers = req.headers();
-        let token = headers
-            .get("X-CSRF-Token")
-            .and_then(|v| v.to_str().ok())
-            .ok_or(StatusCode::FORBIDDEN)?;
-
-        let mut conn = redis::Client::open("redis://127.0.0.1/")
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .get_connection_manager()
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        let key = format!("csrf:{}", token);
-        // DEL возвращает число удалённых ключей
-        let deleted: i32 = conn.del(&key).await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        if deleted == 1 {
-            // токен был валиден и удалён
-            tracing::info!("Valid CSRF token");
-        } else {
-            tracing::warn!("Invalid or expired CSRF token");
-            return Err(StatusCode::FORBIDDEN);
-        }
-    }
-
-    Ok(next.run(req).await)
 }

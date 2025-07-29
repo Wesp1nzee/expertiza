@@ -2,10 +2,12 @@ use axum::{
     http::StatusCode,
     response::{Json, IntoResponse},
     extract::Json as ExtractJson,
+    extract::State,
 };
 use serde::{Deserialize, Serialize};
 use crate::csrf::{CsrfService, CsrfTokenResponse};
-use tracing;
+use crate::state::AppState;
+use crate::database::postgres::models::CreateSubmissionRequest;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContactSubmission {
@@ -13,7 +15,6 @@ pub struct ContactSubmission {
     email: String,
     phone: Option<String>,
     message: String,
-    timestamp: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -47,8 +48,10 @@ pub async fn get_csrf_token() -> impl IntoResponse {
 }
 
 // /api/v1/contact-submissions
-pub async fn accept_form(ExtractJson(data): ExtractJson<ContactSubmission>) -> impl IntoResponse {
-    // Валидация имени
+pub async fn accept_form(
+    State(state): State<AppState>,
+    ExtractJson(data): ExtractJson<ContactSubmission>,
+) -> impl IntoResponse {
     if data.name.len() < 2 || data.name.len() > 50 {
         return (
             StatusCode::BAD_REQUEST,
@@ -81,16 +84,20 @@ pub async fn accept_form(ExtractJson(data): ExtractJson<ContactSubmission>) -> i
         ).into_response();
     }
 
-    tracing::info!("Received contact form submission from: {}", data.email);
-    println!("timestamp: {}", data.timestamp);
-    let submission_id = uuid::Uuid::new_v4().to_string();
-    tracing::info!("Generated submission ID: {}", submission_id);
-    // TODO: Сохраниние в Redis и отправка уведомления на почту 
+    let submission_id = uuid::Uuid::new_v4();
+    let submission = CreateSubmissionRequest {
+        submission_id: submission_id.clone(),
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        message: data.message,
+    };
+    state.db_postgres.save_submission(submission).await.unwrap();
     (
         StatusCode::OK,
         Json(SuccessResponse {
             message: "Сообщение успешно отправлено".to_string(),
-            submission_id,
+            submission_id: submission_id.to_string(),
         }),
     ).into_response()
 }

@@ -1,13 +1,15 @@
 use axum::{
     http::{StatusCode, HeaderMap, header},
     response::{Json, IntoResponse, Response},
-    extract::Json as ExtractJson,
+    extract::{Json as ExtractJson, State},
 };
 use serde::{Deserialize, Serialize};
 use dotenv::var;
 use tracing::{info, warn};
 use bcrypt::verify;
-
+use crate::state::AppState;
+use crate::database::postgres::models::{PaginationResult, DatabaseStats, Submission};
+use super::error::AppError;
 
 #[derive(Debug, Deserialize)]
 pub struct AdminLoginRequest {
@@ -59,24 +61,6 @@ pub async fn post_admin_login(
         }
     };
 
-    // let csrf_secret = var("CSRF_SECRET").unwrap_or_else(|_| "default_secret".to_string());
-    
-    // // Проверка CSRF токена
-    // let csrf_token = headers
-    //     .get("X-CSRF-Token")
-    //     .and_then(|v| v.to_str().ok())
-    //     .unwrap_or("");
-    
-    // if !verify_csrf_token(csrf_token, &csrf_secret).await {
-    //     warn!("Invalid CSRF token in admin login attempt");
-    //     return (
-    //         StatusCode::FORBIDDEN,
-    //         Json(AdminErrorResponse {
-    //             error: "Invalid CSRF token".to_string(),
-    //         }),
-    //     ).into_response();
-    // }
-
     let username_valid = payload.username == admin_login;
     let password_valid = verify(
         &payload.password,
@@ -120,4 +104,54 @@ pub async fn post_admin_login(
             redirect: "/admin/dashboard".to_string(),
         }),
     ).into_response()
+}
+
+// Структура для параметров запроса
+#[derive(Debug, Deserialize)]
+pub struct PaginationQuery {
+    page: usize,
+    per_page: usize
+}
+
+// /api/v1/admin/dashboard-page?page=1&per_page=20
+pub async fn post_admin_dashboard(
+    State(state): State<AppState>,
+    pagination: axum::extract::Query<PaginationQuery>,
+) -> Result<Json<PaginationResult<Submission>>, AppError> {
+    let result: PaginationResult<Submission> = state.db_postgres.get_submissions_paginated(
+        pagination.page.try_into().unwrap(),
+        pagination.per_page.try_into().unwrap()
+    )
+    .await
+    .map_err(AppError::DatabaseError)?;
+
+    Ok(Json(result))
+}
+
+pub async fn get_admin_statistics(
+    State(state): State<AppState>,
+) -> Result<Json<DatabaseStats>, AppError> {
+    let result: DatabaseStats = state.db_postgres.get_statistics().await
+        .map_err(AppError::DatabaseError)?;
+
+    Ok(Json(result))
+}
+
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct UpdateViewedParams {
+    submission_id: uuid::Uuid,
+    status: String,
+}
+// api/v1/admin/update-submission-status
+// Пример запроса PUT /api/v1/admin/update-submission-status?submission_id=123&viewed=true
+pub async fn update_admin_status(
+    State(state): State<AppState>,
+    Json(params): Json<UpdateViewedParams>,
+) -> Result<StatusCode, AppError> {
+    state.db_postgres
+        .update_submissions_status(params.submission_id, params.status)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

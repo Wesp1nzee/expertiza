@@ -41,18 +41,26 @@ class ContactFormHandler {
             
         } catch (error) {
             console.error('❌ Failed to load CSRF token:', error);
-            this.updateCsrfStatus(false, error.message);
-            this.submitBtn.disabled = true;
+            
+            // Попробуем использовать meta-тег как запасной вариант
+            const metaToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (metaToken) {
+                this.csrfToken = metaToken;
+                this.updateCsrfStatus(true);
+                this.submitBtn.disabled = false;
+                console.warn('⚠️ Using fallback CSRF token from meta tag');
+            } else {
+                this.updateCsrfStatus(false, error.message);
+                this.submitBtn.disabled = true;
+            }
         }
     }
 
     updateCsrfStatus(success, errorMessage = null) {
         if (success) {
             this.csrfStatus.className = 'csrf-status csrf-ready';
-            this.csrfStatus.textContent = '✅ CSRF защита активна';
         } else {
             this.csrfStatus.className = 'csrf-status csrf-error';
-            this.csrfStatus.textContent = `❌ Ошибка CSRF защиты: ${errorMessage || 'Неизвестная ошибка'}`;
         }
     }
 
@@ -68,8 +76,6 @@ class ContactFormHandler {
 
     setupEventListeners() {
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-        
-        // Валидация в реальном времени
         document.getElementById('name').addEventListener('blur', () => this.validateField('name'));
         document.getElementById('email').addEventListener('blur', () => this.validateField('email'));
         document.getElementById('phone').addEventListener('blur', () => this.validateField('phone'));
@@ -116,7 +122,7 @@ class ContactFormHandler {
                 break;
                 
             case 'phone':
-                if (value && !/^[\d\s+\-()]{7,15}$/.test(value)) {
+                if (value && !/^[\d\s+\-()]{7,20}$/.test(value)) {
                     this.showError(fieldId, 'Некорректный формат телефона');
                     return false;
                 }
@@ -138,14 +144,12 @@ class ContactFormHandler {
         this.resetErrors();
         let isValid = true;
 
-        // Honeypot проверка
         const honeypot = document.getElementById('honeypot').value;
         if (honeypot) {
             console.warn('🤖 Bot detected via honeypot');
             return false;
         }
 
-        // Проверяем все поля
         ['name', 'email', 'phone', 'message'].forEach(fieldId => {
             if (!this.validateField(fieldId)) {
                 isValid = false;
@@ -172,8 +176,7 @@ class ContactFormHandler {
             name: document.getElementById('name').value.trim(),
             email: document.getElementById('email').value.trim(),
             phone: document.getElementById('phone').value.trim() || null,
-            message: document.getElementById('message').value.trim(),
-            timestamp: new Date().toISOString()
+            message: document.getElementById('message').value.trim()
         };
 
         this.setSubmitState(true);
@@ -190,7 +193,20 @@ class ContactFormHandler {
                 body: JSON.stringify(formData)
             });
 
-            const result = await response.json();
+            // Сначала получаем текстовый ответ
+            const responseText = await response.text();
+            
+            let result;
+            try {
+                // Пытаемся распарсить JSON
+                result = JSON.parse(responseText);
+            } catch (jsonError) {
+                // Если не JSON - создаем объект ошибки
+                result = {
+                    message: responseText || `HTTP Error: ${response.status}`,
+                    code: 'INVALID_RESPONSE'
+                };
+            }
 
             if (response.ok) {
                 this.showResponse('success', 
@@ -202,10 +218,32 @@ class ContactFormHandler {
                 this.form.reset();
                 this.resetErrors();
             } else {
+                // Обработка ошибок валидации
+                let fieldErrors = '';
+                
+                if (result.code === "VALIDATION_ERROR") {
+                    if (result.message.includes("Имя")) {
+                        this.showError('name', result.message);
+                    } else if (result.message.includes("email")) {
+                        this.showError('email', result.message);
+                    } else if (result.message.includes("Сообщение")) {
+                        this.showError('message', result.message);
+                    }
+                    fieldErrors = `<p>Проверьте правильность заполнения полей</p>`;
+                }
+                
+                // Если сервер вернул детализированные ошибки
+                if (result.errors) {
+                    result.errors.forEach(error => {
+                        this.showError(error.field, error.message);
+                        fieldErrors += `<p>${error.field}: ${error.message}</p>`;
+                    });
+                }
+                
                 this.showResponse('error', 
                     `❌ Ошибка: ${result.message || 'Произошла неизвестная ошибка'}<br>
                         <p>Код ошибки: ${result.code || 'UNKNOWN'}</p>
-                        <p>Попробуйте отправить форму позже или свяжитесь другим способом</p>`
+                        ${fieldErrors}`
                 );
             }
 
@@ -224,14 +262,33 @@ class ContactFormHandler {
     setSubmitState(isSubmitting) {
         this.submitBtn.disabled = isSubmitting;
         this.submitBtn.textContent = isSubmitting ? 'Отправка...' : 'Отправить сообщение';
+        
+        // Блокируем всю форму на время отправки
+        this.form.querySelectorAll('input, textarea, button').forEach(el => {
+            if (el !== this.submitBtn) {
+                el.disabled = isSubmitting;
+            }
+        });
     }
 
     showResponse(type, message) {
         const responseElement = document.getElementById('responseMessage');
-        responseElement.innerHTML = `<div class="${type}">${message}</div>`;
-        responseElement.style.display = 'block';
+        // Очищаем предыдущие сообщения
+        responseElement.innerHTML = '';
         
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type;
+        messageDiv.innerHTML = message;
+        responseElement.appendChild(messageDiv);
+        
+        responseElement.style.display = 'block';
         responseElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                responseElement.style.display = 'none';
+            }, 10000);
+        }
     }
 }
 
