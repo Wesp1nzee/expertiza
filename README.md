@@ -22,7 +22,6 @@ Below are two variants of the README: one in English, and one in Russian. You ca
 - [Database & Migrations](#database--migrations)  
 - [Running the Application](#running-the-application)  
 - [Project Structure](#project-structure)  
-- [Development & Testing](#development--testing)  
 - [License](#license)
 
 ---
@@ -138,8 +137,6 @@ expertiza/
 
 MIT © 2025 Wesp1nzee
 
-````
-
 ---
 
 ## Русская версия
@@ -160,7 +157,6 @@ MIT © 2025 Wesp1nzee
 - [База данных и миграции](#база-данных-и-миграции)  
 - [Запуск приложения](#запуск-приложения)  
 - [Структура проекта](#структура-проекта)  
-- [Разработка и тестирование](#разработка-и-тестирование)  
 - [Лицензия](#лицензия)
 
 ---
@@ -275,6 +271,3 @@ expertiza/
 ## Лицензия
 
 MIT © 2025 Wesp1nzee
-
-```
-```
