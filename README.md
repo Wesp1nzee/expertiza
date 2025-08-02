@@ -6,7 +6,7 @@ Below are two variants of the README: one in English, and one in Russian. You ca
 
 ## English Version
 
-````markdown
+
 # Expertiza
 
 **Expertiza** is a Rust web application built with the [Axum](https://crates.io/crates/axum) framework. It provides a RESTful API backed by PostgreSQL (via `sqlx`) and Redis.
@@ -58,7 +58,7 @@ Below are two variants of the README: one in English, and one in Russian. You ca
    ```bash
    git clone https://github.com/Wesp1nzee/expertiza.git
    cd expertiza
-````
+
 
 2. Download dependencies:
 
@@ -144,7 +144,7 @@ MIT © 2025 Wesp1nzee
 
 ## Русская версия
 
-```markdown
+
 # Expertiza
 
 **Expertiza** — это веб-приложение на Rust, разработанное на основе фреймворка [Axum](https://crates.io/crates/axum). Приложение предоставляет RESTful API с хранилищем данных в PostgreSQL (с помощью `sqlx`) и кэшем в Redis.
@@ -196,7 +196,6 @@ MIT © 2025 Wesp1nzee
    ```bash
    git clone https://github.com/Wesp1nzee/expertiza.git
    cd expertiza
-````
 
 2. Загрузите зависимости:
 
