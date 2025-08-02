@@ -390,7 +390,198 @@ function filterCurrentData(searchTerm) {
     document.getElementById("nextPageBtn").classList.add("disabled");
 }
 
-// Инициализация при загрузке страницы
+function openAddClientModal() {
+    document.getElementById('addClientModal').style.display = 'flex';
+    // Очищаем форму
+    document.getElementById('addClientForm').reset();
+}
+
+function closeAddClientModal() {
+    document.getElementById('addClientModal').style.display = 'none';
+}
+function updateStatsAfterAdd() {
+    const totalElement = document.querySelector('.stat-card:first-child h2');
+    const todayElement = document.querySelector('.stat-card:nth-child(3) h2');
+    
+    if (totalElement) {
+        const currentTotal = parseInt(totalElement.textContent);
+        totalElement.textContent = currentTotal + 1;
+    }
+    
+    if (todayElement) {
+        const currentToday = parseInt(todayElement.textContent);
+        todayElement.textContent = currentToday + 1;
+    }
+}
+// Функция для отправки данных нового клиента
+async function saveNewClient() {
+    const form = document.getElementById('addClientForm');
+    const formData = new FormData(form);
+    
+    // Получаем кнопку и сохраняем оригинальное состояние
+    const saveBtn = document.getElementById('saveClient');
+    const originalText = saveBtn.innerHTML;
+    const originalState = saveBtn.disabled;
+    
+    try {
+        // Блокируем кнопку во время валидации и отправки
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+        
+        // Валидация формы
+        const name = formData.get('name').trim();
+        const email = formData.get('email').trim();
+        
+        if (!name || !email) {
+            showNotification('Пожалуйста, заполните обязательные поля', 'error');
+            return;
+        }
+        
+        // Проверка корректности email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showNotification('Пожалуйста, введите корректный email адрес', 'error');
+            return;
+        }
+        
+        // Подготовка данных для отправки
+        const clientData = {
+            name: name,
+            email: email,
+            phone: formData.get('phone').trim() || null,
+            message: formData.get('comment').trim() || 'Клиент добавлен администратором',
+        };
+        
+        // API запрос для создания клиента
+        const response = await fetch('/api/v1/admin/add-submissions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(clientData)
+        });
+
+        if (!response.ok) { 
+            const errorData = await response.json().catch(() => null);
+            console.error('Ошибка при сохранении клиента:', response.status, errorData);
+            showNotification(errorData?.message || 'Ошибка при сохранении клиента', 'error');
+            return;
+        }
+
+        const responseData = await response.json();
+        const newUuid = responseData.submission_id;
+
+        // Добавляем нового клиента в таблицу
+        addClientToTable({
+            submission_id: newUuid,
+            name: clientData.name,
+            email: clientData.email,
+            phone: clientData.phone,
+            message: clientData.message,
+            status: 'new',
+            created_at: new Date().toISOString()
+        });
+        
+        // Обновляем статистику
+        updateStatsAfterAdd();
+        
+        showNotification('Клиент успешно добавлен!', 'success');
+        closeAddClientModal();
+        
+    } catch (error) {
+        console.error('Error saving client:', error);
+        showNotification('Ошибка при сохранении клиента', 'error');
+    } finally {
+        // Всегда восстанавливаем кнопку в исходное состояние
+        saveBtn.disabled = originalState;
+        saveBtn.innerHTML = originalText;
+    }
+}
+
+// Функция генерации UUID (для демонстрации)
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+// Функция добавления клиента в таблицу
+function addClientToTable(client) {
+    const tableBody = document.getElementById('submissionsTable');
+    const row = document.createElement('tr');
+    
+    // Генерация инициалов для аватара
+    const initials = client.name.split(' ')
+        .map(part => part[0])
+        .join('')
+        .toUpperCase();
+    
+    // Форматирование телефона
+    const phoneDisplay = client.phone ? client.phone : 'не указан';
+    
+    // Сокращение UUID для таблицы
+    const shortUuid = client.submission_id.substring(0, 8) + '...';
+    
+    // Форматирование даты
+    const date = new Date(client.created_at);
+    const formattedDate = date.toLocaleString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    row.innerHTML = `
+        <td>
+            <div class="user-cell">
+                <div class="user-avatar-small">${initials}</div>
+                <div>${client.name}</div>
+            </div>
+        </td>
+        <td>
+            <div>${client.email}</div>
+            <div style="font-size: 14px; color: var(--secondary);">${phoneDisplay}</div>
+        </td>
+        <td>${formattedDate}</td>
+        <td>
+            <div class="uuid-badge" title="${client.submission_id}">
+                <i class="fas fa-fingerprint"></i>${shortUuid}
+            </div>
+        </td>
+        <td>
+            <span class="status-badge status-new">Новая</span>
+        </td>
+        <td>
+            <button class="action-btn view-btn" data-id="${client.submission_id}">
+                <i class="fas fa-eye"></i> Просмотр
+            </button>
+        </td>
+    `;
+    
+    // Добавляем строку в начало таблицы
+    tableBody.insertBefore(row, tableBody.firstChild);
+    
+    // Добавляем обработчик для новой кнопки просмотра
+    const viewBtn = row.querySelector('.view-btn');
+    viewBtn.addEventListener('click', function() {
+        openSubmissionModal(client);
+    });
+    
+    // Добавляем обработчик для UUID
+    const uuidBadge = row.querySelector('.uuid-badge');
+    uuidBadge.addEventListener('click', function() {
+        copyToClipboard(client.submission_id);
+        showNotification('UUID скопирован в буфер обмена!');
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('saveClient').addEventListener('click', saveNewClient);
+    document.getElementById('closeAddClientModal').addEventListener('click', closeAddClientModal);
+    document.getElementById('cancelAddClient').addEventListener('click', closeAddClientModal);
+    document.getElementById('addClientBtn').addEventListener('click', openAddClientModal);
     loadAndRenderTable(1);
 });

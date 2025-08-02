@@ -90,6 +90,7 @@
                 <div class="search-container">
                     <input type="text" class="search-box" placeholder="Поиск по имени, email или UUID...">
                     <button class="btn btn-outline"><i class="fas fa-filter"></i> Фильтры</button>
+                    <button class="btn btn-success" id="addClientBtn"><i class="fas fa-user-plus"></i> Добавить клиента</button>
                     <button class="btn btn-primary"><i class="fas fa-file-export"></i> Экспорт</button>
                 </div>
             </div>
@@ -194,6 +195,56 @@
         <div class="modal-footer">
             <button class="btn btn-outline"><i class="fas fa-reply"></i> Ответить</button>
             <button class="btn btn-primary close-modal"><i class="fas fa-times"></i> Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления клиента -->
+<div class="modal" id="addClientModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-user-plus"></i> Добавить нового клиента</div>
+            <button class="close-btn" id="closeAddClientModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addClientForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clientName">
+                            <i class="fas fa-user"></i> ФИО <span class="form-required">*</span>
+                        </label>
+                        <input type="text" id="clientName" name="name" required placeholder="Введите полное имя">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientEmail">
+                            <i class="fas fa-envelope"></i> Email <span class="form-required">*</span>
+                        </label>
+                        <input type="email" id="clientEmail" name="email" required placeholder="client@example.com">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientPhone">
+                        <i class="fas fa-phone"></i> Номер телефона
+                    </label>
+                    <input type="tel" id="clientPhone" name="phone" placeholder="+7 (999) 123-45-67">
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientComment">
+                        <i class="fas fa-comment"></i> Комментарий к заказу
+                    </label>
+                    <textarea id="clientComment" name="comment" placeholder="Укажите детали заказа, пожелания или дополнительную информацию..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelAddClient">
+                <i class="fas fa-times"></i> Отмена
+            </button>
+            <button class="btn btn-success" id="saveClient">
+                <i class="fas fa-save"></i> Сохранить клиента
+            </button>
         </div>
     </div>
 </div>

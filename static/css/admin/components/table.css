@@ -183,3 +183,12 @@ tr:hover td {
     margin-right: 5px;
     font-size: 10px;
 }
+
+#addClientBtn {
+    background: var(--btn-add);
+    color: white;
+}
+
+#addClientBtn:hover {
+    background: #157347;
+}

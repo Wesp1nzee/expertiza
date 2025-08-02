@@ -476,6 +476,7 @@ dependencies = [
  "bcrypt",
  "chrono",
  "dotenv",
+ "dotenvy",
  "rand 0.9.2",
  "redis",
  "serde",
