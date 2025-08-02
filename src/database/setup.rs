@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tracing::{info, error, instrument};
+use tracing::{info, error};
 use crate::database::{
     redis::redis_interface::RedisDatabase,
     postgres::postgres_interface::PostgresDatabase,

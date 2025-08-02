@@ -25,7 +25,7 @@ use crate::routers::client::{
     api::{get_csrf_token, accept_form},
 };
 use crate::routers::admin::{
-    web::{admin_login, admin_dashboard},
+    web::{admin_dashboard},
     api::{
         create_contact_submission, post_admin_dashboard, 
         get_admin_statistics, 

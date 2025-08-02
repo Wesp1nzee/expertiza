@@ -1,7 +1,6 @@
 use std::time::Duration;
 use axum::{
-    http::{HeaderMap, Request, Response},
-    body::Body,
+    http::{HeaderMap, Request, Response}
 };
 use tower_http::classify::ServerErrorsFailureClass;
 use tracing::{info, warn, error, debug, Span};
