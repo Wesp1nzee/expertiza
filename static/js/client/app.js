@@ -6,7 +6,8 @@ class ContactFormHandler {
         this.form = document.getElementById('contactForm');
         this.submitBtn = document.getElementById('submitBtn');
         this.csrfStatus = document.getElementById('csrfStatus');
-        
+        this.phoneInput = document.getElementById('phone');
+
         this.init();
     }
 
@@ -14,6 +15,48 @@ class ContactFormHandler {
         await this.loadCsrfToken();
         this.setupEventListeners();
         this.startTokenRefreshTimer();
+        this.setupPhoneMask();
+    }
+
+    setupPhoneMask() {
+        const phoneInput = this.phoneInput;
+        
+        phoneInput.addEventListener('input', function(e) {
+            const value = phoneInput.value.replace(/\D/g, '');
+            let formattedValue = '';
+            
+            if (value.length > 0) {
+                formattedValue = '(' + value.substring(0, 3);
+            }
+            if (value.length > 3) {
+                formattedValue += ') ' + value.substring(3, 6);
+            }
+            if (value.length > 6) {
+                formattedValue += '-' + value.substring(6, 8);
+            }
+            if (value.length > 8) {
+                formattedValue += '-' + value.substring(8, 10);
+            }
+            
+            phoneInput.value = formattedValue;
+        });
+
+        phoneInput.addEventListener('keydown', function(e) {
+            // backspace, delete, tab, escape, enter
+            if ([46, 8, 9, 27, 13].includes(e.key) || 
+                // Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.key === 65 && e.ctrlKey === true) || 
+                (e.key === 67 && e.ctrlKey === true) ||
+                (e.key === 86 && e.ctrlKey === true) ||
+                (e.key === 88 && e.ctrlKey === true)) {
+                return;
+            }
+            
+            // Запрещаем не-цифры
+            if ((e.key < 48 || e.key > 57) && (e.key < 96 || e.key > 105)) {
+                e.preventDefault();
+            }
+        });
     }
 
     async loadCsrfToken() {
@@ -122,9 +165,15 @@ class ContactFormHandler {
                 break;
                 
             case 'phone':
-                if (value && !/^[\d\s+\-()]{7,20}$/.test(value)) {
-                    this.showError(fieldId, 'Некорректный формат телефона');
-                    return false;
+                if (value) {
+                    // Удаляем все нецифровые символы, кроме ведущего +
+                    const digits = value.replace(/\D/g, '');
+                    
+                    // Должно быть ровно 10 цифр (т.к. префикс +7 уже указан отдельно)
+                    if (digits.length !== 10) {
+                        this.showError(fieldId, 'Некорректный формат телефона. Введите 10 цифр номера. Пример: (999) 999-99-99');
+                        return false;
+                    }
                 }
                 break;
                 

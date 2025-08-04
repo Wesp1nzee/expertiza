@@ -10,6 +10,8 @@
     --border-radius: 8px;
     --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
     --transition: all 0.3s ease;
+    --success: #28a745;
+    --error: #dc3545;
 }
 
 * {
@@ -415,6 +417,83 @@ nav a:hover:after {
 textarea.form-control {
     min-height: 150px;
     resize: vertical;
+}
+
+.form-control:invalid:not(:focus):not(:placeholder-shown) {
+    border-color: var(--light-gray);
+}
+
+.form-group.touched .form-control:invalid,
+.form-control:focus:invalid {
+    border-color: var(--error);
+}
+
+.phone-input-group {
+    position: relative;
+}
+
+.input-with-prefix {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.prefix {
+    background: var(--light-gray);
+    padding: 12px 12px;
+    border: 1px solid var(--light-gray);
+    border-right: none;
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+    color: var(--gray);
+}
+
+/* Стили для маски и плейсхолдера */
+.form-control.phone-input {
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    padding-left: 10px;
+    padding-right: 40px; /* Для иконки */
+    transition: all 0.3s ease, border-color 0.3s ease;
+}
+
+/* Иконка валидации */
+.validation-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+}
+
+/* Хинты */
+.hint {
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-top: 4px;
+}
+
+/* Интерактивные состояния */
+.form-control:not(:placeholder-shown):valid {
+    border-color: var(--success);
+}
+
+.form-control:not(:placeholder-shown):invalid {
+    border-color: var(--error);
+}
+
+/* Улучшенный error message */
+.error {
+    color: var(--error);
+    font-size: 0.85rem;
+    height: 20px;
+    margin-top: 4px;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+/* Фокус-эффект */
+.form-control:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Footer */

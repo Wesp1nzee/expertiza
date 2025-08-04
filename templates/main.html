@@ -276,9 +276,6 @@
                     <div class="contact-form">
                         <h2>Напишите нам</h2>
                         
-                        <div class="security-info">
-                        </div>
-                        
                         <div id="csrfStatus" class="csrf-status csrf-error">
                         </div>
                         
@@ -295,9 +292,13 @@
                                 <div class="error" id="email-error"></div>
                             </div>
                             
-                            <div class="form-group">
+                            <div class="form-group phone-input-group">
                                 <label for="phone">Телефон</label>
-                                <input type="tel" id="phone" class="form-control" pattern="^[\d\s+\-()]{7,15}$">
+                                <div class="input-with-prefix">
+                                    <span class="prefix">+7</span>
+                                    <input type="tel" id="phone" class="form-control" 
+                                        placeholder="(999) 999-99-99" maxlength="18">
+                                </div>
                                 <div class="error" id="phone-error"></div>
                             </div>
                             
