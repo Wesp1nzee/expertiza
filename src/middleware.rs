@@ -74,6 +74,11 @@ pub async fn security_headers_middleware(request: Request, next: Next) -> Respon
         "Permissions-Policy",
         HeaderValue::from_static("geolocation=(), microphone=(), camera=()"),
     );
+
+    headers.insert(
+        "Cache-Control",
+        HeaderValue::from_static("no-store, no-cache, must-revalidate, proxy-revalidate"),
+    );
     
     response
 }

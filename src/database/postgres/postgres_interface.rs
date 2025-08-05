@@ -28,12 +28,12 @@ impl PostgresDatabase {
     
     pub async fn save_submission(&self, request: CreateSubmissionRequest) -> Result<Submission> {
         let submission = request.into_submission();
-        
+
         let saved_submission = sqlx::query_as!(
             Submission,
             r#"
-            INSERT INTO submissions (submission_id, name, email, phone, message, created_at, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO submissions (submission_id, name, email, phone, message, created_at, status, admin_comments)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             "#,
             submission.submission_id,
@@ -42,7 +42,8 @@ impl PostgresDatabase {
             submission.phone,
             submission.message,
             submission.created_at,
-            submission.status
+            submission.status,
+            submission.admin_comments // добавляем admin_comments
         )
         .fetch_one(&self.pool)
         .await?;
@@ -111,7 +112,7 @@ impl PostgresDatabase {
         &self,
         submission_id: Uuid,
         status: String,
-    ) -> Result<()> {  // Используем ваш Result<T> без указания sqlx::Error
+    ) -> Result<()> {  
         let updated_submission = sqlx::query_as!(
             Submission,
             r#"
@@ -125,7 +126,7 @@ impl PostgresDatabase {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(DatabaseError::from)?;  // Конвертируем sqlx::Error в DatabaseError
+        .map_err(DatabaseError::from)?; 
 
         info!("Submission updated: {}", updated_submission.submission_id);
         Ok(())

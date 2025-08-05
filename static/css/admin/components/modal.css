@@ -274,6 +274,36 @@
     border-color: #146c43;
 }
 
+.admin-notes-container {
+    margin-top: 20px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+.admin-notes-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: inherit;
+    margin-top: 10px;
+}
+
+#updateDataBtn {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transition: opacity 0.3s;
+}
+
+#updateDataBtn:not(:disabled) {
+    opacity: 1;
+    cursor: pointer;
+}
+
+
+
 /* Адаптивность */
 @media (max-width: 650px) {
     #addClientModal .form-row {

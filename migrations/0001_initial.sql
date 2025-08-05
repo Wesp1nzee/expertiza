@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS submissions (
     phone VARCHAR(20),
     message TEXT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'new',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    admin_comments TEXT
 );
 
 -- Create indexes for performance (only if not exists)

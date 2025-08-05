@@ -10,7 +10,8 @@ pub struct Submission {
     pub phone: Option<String>,
     pub message: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    pub status: String
+    pub status: String,
+    pub admin_comments: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -67,7 +68,8 @@ impl CreateSubmissionRequest {
             phone: self.phone,
             message: self.message,
             created_at: now,
-            status: "new".to_string()
+            status: "new".to_string(),
+            admin_comments: Some(String::new()),
         }
     }
 }

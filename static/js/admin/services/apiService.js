@@ -23,6 +23,11 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
+      const contentType = response.headers.get('content-type');
+      if (options.method === 'PUT' && (!contentType || !contentType.includes('application/json'))) {
+        return null;
+      }
+      
       return await response.json();
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);

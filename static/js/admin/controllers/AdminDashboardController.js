@@ -158,7 +158,6 @@ export class AdminDashboardController {
     } catch (error) {
       console.error('Error updating status:', error);
       
-      // Возвращаем оригинальный статус в модальном окне
       const submission = submissionStore.findSubmissionById(submissionId);
       if (submission) {
         submission.status = originalStatus;
