@@ -25,7 +25,7 @@ use crate::routers::client::{
     api::{get_csrf_token, accept_form},
 };
 use crate::routers::admin::{
-    web::{admin_dashboard},
+    web::{admin_dashboard, admin_login},
     api::{
         create_contact_submission, post_admin_dashboard, 
         get_admin_statistics, 
@@ -33,6 +33,7 @@ use crate::routers::admin::{
     },
 };
 use crate::middleware::{security_headers_middleware, rate_limit_middleware};
+use crate::state::AppState;
 
 fn setup_cors() -> CorsLayer {
     CorsLayer::new()
@@ -51,30 +52,45 @@ fn setup_static_service() -> ServeDir {
         .append_index_html_on_directories(false)
 }
 
-fn setup_routes() -> Router<crate::state::AppState> {
-    Router::new()
-        .route("/", get(serve_index))
-        .route("/admin-dashboard", get(admin_dashboard))
-        .route("/api/v1/admin/update-submission-status", put(update_admin_status))
-        .route("/api/v1/admin/add-submissions", post(create_contact_submission))
-        .route("/api/v1/admin/dashboard-submission-page", post(post_admin_dashboard))
-        .route("/api/v1/admin/dashboard-stats", get(get_admin_statistics))
-        .route("/api/v1/csrf-token", get(get_csrf_token))
-        .route("/api/v1/contact-submissions", post(accept_form))
+fn setup_static_service_admin() -> ServeDir {
+    ServeDir::new("static")
+        .append_index_html_on_directories(false)
 }
 
-pub async fn create_app(config: Config) -> Result<Router, Box<dyn std::error::Error>> {
-    info!("Setting up databases");
+
+fn setup_routes_admin() -> Router<AppState> {
+    Router::new()
+        .route("/login", get(admin_login))
+        .route("/dashboard", get(admin_dashboard))
+        .route("/api/v1/update-submission-status", put(update_admin_status))
+        .route("/api/v1/add-submissions", post(create_contact_submission))
+        .route("/api/v1/dashboard-page", post(post_admin_dashboard))
+        .route("/api/v1/dashboard-stats", get(get_admin_statistics))
+}
+
+fn setup_routes_client() -> Router<AppState> {
+    Router::new()
+        .route("/csrf-token", get(get_csrf_token))
+        .route("/contact-submissions", post(accept_form))
+}
+
+pub async fn create_app(config: Config) -> Result<Router<>, Box<dyn std::error::Error>> {
     let shared_state = setup_databases(&config).await?;
-    
-    info!("Setting up CORS and middleware");
+
     let cors = setup_cors();
     let static_service = setup_static_service();
-    let routes = setup_routes();
-    
+    let static_service_admin = setup_static_service_admin();
+    let routes = Router::new();
+
+    let admin_routes = setup_routes_admin();
+    let client_routes = setup_routes_client();
+
     let app = routes
-        .with_state(shared_state)
         .nest_service("/static", static_service)
+        .nest_service("/admin/static", static_service_admin)
+        .route("/", get(serve_index))
+        .nest("/admin", admin_routes)
+        .nest("/api/v1", client_routes)
         .fallback(handle_404)
         .layer(
             ServiceBuilder::new()
@@ -103,7 +119,8 @@ pub async fn create_app(config: Config) -> Result<Router, Box<dyn std::error::Er
                 .layer(cors)
                 .layer(axum_middleware::from_fn(security_headers_middleware))
                 .layer(axum_middleware::from_fn(rate_limit_middleware))
-        );
+        )
+        .with_state(shared_state);
     
     info!("Server configured successfully");
     Ok(app)

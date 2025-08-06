@@ -20,12 +20,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     info!("Starting server initialization");
     
-    let config = Config::from_env()?;
+    let config: Config = Config::from_env()?;
     let app = create_app(config.clone()).await?;
     
-    let listener = TcpListener::bind(&config.server_address).await?;
+    let listener: TcpListener = TcpListener::bind(&config.server_address).await?;
     info!("🚀 Сервер запущен на http://{}", config.server_address);
-    
     serve(listener, app).await?;
+
     Ok(())
 }
