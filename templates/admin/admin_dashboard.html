@@ -11,6 +11,34 @@
     <link rel="stylesheet" href="/static/css/admin/components/table.css">
     <link rel="stylesheet" href="/static/css/admin/components/modal.css">
     <link rel="stylesheet" href="/static/css/admin/utilities.css">
+    <style>
+        
+        .nav-items-container {
+            flex-grow: 1;
+        }
+        
+        .logout-item {
+            margin-top: auto;
+            margin-bottom: 20px;
+            background-color: rgba(255, 0, 0, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-item:hover {
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+        
+        .logout-item .nav-icon {
+            color: #ff4444;
+        }
+        
+        .logout-item .nav-text {
+            color: #ff4444;
+            font-weight: 500;
+        }
+    </style>
+
 </head>
 <body>
 <div class="admin-container">
@@ -35,6 +63,10 @@
         <div class="nav-item">
             <div class="nav-icon"><i class="fas fa-cog"></i></div>
             <div class="nav-text">Настройки</div>
+        </div>
+        <div class="nav-item logout-item">
+            <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+            <div class="nav-text">Выйти</div>
         </div>
     </div>
     

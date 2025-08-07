@@ -6,6 +6,7 @@ pub mod csrf;
 mod config;
 mod logging;
 mod server;
+mod error;
 
 use crate::config::Config;
 use crate::logging::setup_tracing;

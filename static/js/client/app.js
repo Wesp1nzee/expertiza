@@ -150,8 +150,8 @@ class ContactFormHandler {
         
         switch(fieldId) {
             case 'name':
-                if (!/^[a-zA-Zа-яА-ЯёЁ\s\-']{2,50}$/.test(value)) {
-                    this.showError(fieldId, 'Имя должно содержать 2-50 буквенных символов');
+                if (!/^[a-zA-Zа-яА-ЯёЁ\s\-']{2,255}$/.test(value)) {
+                    this.showError(fieldId, 'Имя должно содержать 2-255 буквенных символов');
                     return false;
                 }
                 break;
@@ -166,12 +166,11 @@ class ContactFormHandler {
                 
             case 'phone':
                 if (value) {
-                    // Удаляем все нецифровые символы, кроме ведущего +
                     const digits = value.replace(/\D/g, '');
                     
                     // Должно быть ровно 10 цифр (т.к. префикс +7 уже указан отдельно)
                     if (digits.length !== 10) {
-                        this.showError(fieldId, 'Некорректный формат телефона. Введите 10 цифр номера. Пример: (999) 999-99-99');
+                        this.showError(fieldId, 'Некорректный формат телефона. Введите 10 цифр номера. Пример: (987) 654-32-10');
                         return false;
                     }
                 }

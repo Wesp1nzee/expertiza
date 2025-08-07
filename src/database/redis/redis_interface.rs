@@ -2,17 +2,13 @@
 pub enum DatabaseError {
     Redis(redis::RedisError),
     Serialization(serde_json::Error),
-    NotFound(String),
-    InvalidUuid(String),
 }
 
 impl std::fmt::Display for DatabaseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DatabaseError::Redis(e) => write!(f, "Redis error: {}", e),
-            DatabaseError::Serialization(e) => write!(f, "Serialization error: {}", e),
-            DatabaseError::NotFound(id) => write!(f, "Submission not found: {}", id),
-            DatabaseError::InvalidUuid(id) => write!(f, "Invalid UUID format: {}", id),
+            DatabaseError::Serialization(e) => write!(f, "Serialization error: {}", e)
         }
     }
 }
@@ -47,7 +43,7 @@ impl RedisDatabase {
     }
 
     /// Получает connection из пула
-    async fn get_connection(&self) -> Result<redis::aio::ConnectionManager, DatabaseError> {
+    pub async fn get_connection(&self) -> Result<redis::aio::ConnectionManager, DatabaseError> {
         Ok(self.connection_pool.clone())
     }
 }

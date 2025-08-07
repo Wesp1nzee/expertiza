@@ -2,7 +2,7 @@ use axum::{
     extract::{Request},
         http::{
         header::{CONTENT_SECURITY_POLICY, X_CONTENT_TYPE_OPTIONS, X_FRAME_OPTIONS, X_XSS_PROTECTION},
-        HeaderValue, StatusCode,
+        HeaderValue, StatusCode
     },
     response::Response,
     middleware::{Next},
@@ -16,6 +16,7 @@ use tokio::{
     sync::Mutex,
     time::sleep,
 };
+
 
 #[derive(Debug, Clone)]
 struct RateLimitEntry {
@@ -121,3 +122,4 @@ pub async fn rate_limit_middleware(
     drop(store);
     Ok(next.run(request).await)
 }
+

@@ -9,37 +9,63 @@
     <link rel="stylesheet" href="static/css/admin_login.css">
 </head>
 <body>
+    <div class="particles" id="particles"></div>
+    
     <div class="login-container">
         <div class="login-header">
-            <h1><i class="fas fa-lock"></i> Админ панель</h1>
-            <p>Пройдите аутентификацию</p>
+            <div class="icon-wrapper">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>Админ панель</h1>
+            <p>Безопасный вход в систему управления</p>
         </div>
-        
+       
         <form id="loginForm">
             <input type="hidden" id="csrfToken" name="csrfToken">
-            
+           
             <div class="input-group">
+                <input type="text" id="username" placeholder="Имя пользователя" autocomplete="username" required>
                 <i class="fas fa-user"></i>
-                <input type="text" id="username" placeholder="Имя пользователя администратора" autocomplete="username" required>
             </div>
-            
+           
             <div class="input-group">
-                <i class="fas fa-key"></i>
-                <input type="password" id="password" placeholder="Ваш пароль" autocomplete="current-password" required>
+                <input type="password" id="password" placeholder="Пароль" autocomplete="current-password" required>
+                <i class="fas fa-lock"></i>
             </div>
-            
+           
             <button type="submit" class="btn">
-                Войти <i class="fas fa-fingerprint"></i>
+                <span class="loading"></span>
+                <span class="btn-text">Войти</span>
+                <i class="fas fa-arrow-right"></i>
             </button>
-            
+           
             <div class="error-message" id="errorMessage">
+                <i class="fas fa-exclamation-triangle"></i>
                 Неверные учетные данные. Пожалуйста, попробуйте снова.
             </div>
         </form>
     </div>
+
     <script>
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + 'vw';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        createParticles();
+
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
+
         async function fetchCsrfToken() {
             try {
                 const response = await fetch('/api/v1/csrf-token', {
@@ -54,12 +80,12 @@
             } catch (error) {
                 console.error('CSRF Error:', error);
                 errorMessage.textContent = 'Ошибка безопасности. Перезагрузите страницу.';
-                errorMessage.style.display = 'block';
+                errorMessage.classList.add('show');
             }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            errorMessage.style.display = 'none';
+            errorMessage.classList.remove('show');
             fetchCsrfToken();
             const inputs = document.querySelectorAll('input');
             inputs.forEach(input => {
@@ -70,14 +96,18 @@
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const submitBtn = loginForm.querySelector('button');
-            const originalBtnText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
+            const submitBtn = loginForm.querySelector('.btn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnIcon = submitBtn.querySelector('i');
+            
+            submitBtn.classList.add('loading');
+            btnText.textContent = 'Проверка...';
+            btnIcon.className = 'fas fa-spinner fa-spin';
             submitBtn.disabled = true;
-            errorMessage.style.display = 'none';
+            errorMessage.classList.remove('show');
             
             try {
-                const response = await fetch('/api/v1/admin-login', {
+                const response = await fetch('/admin/api/v1/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -99,21 +129,51 @@
                 if (!response.ok) {
                     throw new Error(data.message || 'Ошибка сервера');
                 }
-                window.location.href = '/admin/dashboard';
+
+                // Success state
+                btnText.textContent = 'Успешно!';
+                btnIcon.className = 'fas fa-check';
+                submitBtn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                
+                setTimeout(() => {
+                    window.location.href = data.redirect_url;
+                }, 1000);
                 
             } catch (error) {
                 errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
+                errorMessage.classList.add('show');
                 
                 await fetchCsrfToken();
                 
                 document.getElementById('password').value = '';
             } finally {
-                submitBtn.innerHTML = originalBtnText;
-                submitBtn.disabled = false;
+                if (!submitBtn.querySelector('.fas.fa-check')) {
+                    submitBtn.classList.remove('loading');
+                    btnText.textContent = 'Войти';
+                    btnIcon.className = 'fas fa-arrow-right';
+                    submitBtn.disabled = false;
+                }
             }
         });
-        
+
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.classList.remove('focused');
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && document.activeElement.tagName !== 'BUTTON') {
+                e.preventDefault();
+                loginForm.requestSubmit();
+            }
+        });
+
         document.addEventListener('contextmenu', e => e.preventDefault());
         Object.freeze(document);
     </script>

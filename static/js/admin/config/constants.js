@@ -1,10 +1,10 @@
 export const CONFIG = {
   API: {
-    BASE_URL: '/api/v1',
+    BASE_URL: '/admin/api/v1',
     ENDPOINTS: {
-      SUBMISSIONS: '/admin/dashboard-submission-page',
-      UPDATE_STATUS: '/admin/update-submission-status',
-      ADD_SUBMISSION: '/admin/add-submissions'
+      SUBMISSIONS: '/dashboard-page',
+      UPDATE_STATUS: '/update-submission-status',
+      ADD_SUBMISSION: '/add-submissions'
     }
   },
   PAGINATION: {

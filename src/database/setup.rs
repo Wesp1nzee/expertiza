@@ -1,11 +1,8 @@
-use std::sync::Arc;
 use tracing::{info, error};
 use crate::database::{
     redis::redis_interface::RedisDatabase,
     postgres::postgres_interface::PostgresDatabase,
 };
-use crate::state::AppState;
-use crate::config::Config;
 
 pub async fn setup_redis(redis_url: &str) -> Result<RedisDatabase, Box<dyn std::error::Error>> {
     info!("Connecting to Redis");
@@ -35,20 +32,4 @@ pub async fn setup_postgres(database_url: &str) -> Result<PostgresDatabase, Box<
             Err(Box::new(e))
         }
     }
-}
-
-pub async fn setup_databases(config: &Config) -> Result<AppState, Box<dyn std::error::Error>> {
-    let db_redis = setup_redis(&config.redis_url).await?;
-    let db_postgres = setup_postgres(&config.database_url).await?;
-    
-    info!("Running database migrations");
-    db_postgres.migrate().await?;
-    info!("Database migrations completed");
-    
-    let shared_state = AppState { 
-        db_postgres: Arc::new(db_postgres),
-        db_redis: Arc::new(db_redis) 
-    };
-    
-    Ok(shared_state)
 }

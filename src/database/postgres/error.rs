@@ -8,9 +8,6 @@ pub enum DatabaseError {
     #[error("Migration error: {0}")]
     Migration(#[from] sqlx::migrate::MigrateError),
     
-    #[error("Submission not found: {0}")]
-    NotFound(String),
-    
     #[error("Invalid UUID format: {0}")]
     InvalidUuid(#[from] uuid::Error),
 }
