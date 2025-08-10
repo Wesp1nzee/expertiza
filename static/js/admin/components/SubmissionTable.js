@@ -42,6 +42,7 @@ export class SubmissionTable {
   async copyUuid(uuid) {
     const success = await ClipboardUtils.copy(uuid);
     if (success) {
+      console.log('UUID copied to clipboard:', uuid);
       notificationService.success('UUID скопирован в буфер обмена!');
     } else {
       notificationService.error('Не удалось скопировать UUID');

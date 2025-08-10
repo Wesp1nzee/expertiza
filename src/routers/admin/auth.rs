@@ -173,7 +173,6 @@ async fn clear_failed_attempts(state: &AppState, username: &str) -> Result<(), A
 async fn authenticate_admin(state: &AppState, username: &str, password: &str) -> Result<AdminUser, AppError> {
     let admin_username = state.admin_username.clone();
     let admin_password_hash = state.admin_password_hash.clone();
-    println!("\nAdmin password hash: {}", admin_password_hash);
     // Проверка имени пользователя
     if username != admin_username {
         return Err(AppError::unauthorized("Invalid credentials"));
@@ -374,7 +373,7 @@ pub async fn admin_logout_handler(
             .http_only(true)
             .secure(true)
             .same_site(SameSite::Strict)
-            .build()    // собираем Cookie из билдера
+            .build()    
     );
 
     Ok((jar, Redirect::to("/admin/login")))

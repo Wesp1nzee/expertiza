@@ -15,8 +15,8 @@ pub struct Submission {
 }
 
 #[derive(Debug, Serialize)]
-pub struct PaginationResult<T> {
-    pub data: Vec<T>,
+pub struct PaginationResult {
+    pub data: Vec<Submission>,
     pub total_count: i64,
     pub page: i64,
     pub per_page: i64,
@@ -25,8 +25,8 @@ pub struct PaginationResult<T> {
     pub has_prev: bool,
 }
 
-impl<T> PaginationResult<T> {
-    pub fn new(data: Vec<T>, total_count: i64, page: i64, per_page: i64) -> Self {
+impl PaginationResult {
+    pub fn new(data: Vec<Submission>, total_count: i64, page: i64, per_page: i64) -> Self {
         let total_pages = (total_count + per_page - 1) / per_page;
         Self {
             data,

@@ -1,4 +1,3 @@
-// controllers/AdminDashboardController.js
 import { apiService } from '../services/apiService.js';
 import { notificationService } from '../services/notificationService.js';
 import { submissionStore } from '../stores/submissionStore.js';

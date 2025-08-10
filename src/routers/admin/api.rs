@@ -6,7 +6,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use crate::state::AppState;
-use crate::database::postgres::models::{PaginationResult, DatabaseStats, Submission};
+use crate::database::postgres::models::{PaginationResult, DatabaseStats};
 use crate::error::AppError;
 use crate::database::postgres::models::CreateSubmissionRequest;
 
@@ -41,8 +41,8 @@ pub struct AdminSuccessResponse {
 pub async fn post_admin_dashboard(
     State(state): State<AppState>,
     pagination: axum::extract::Query<PaginationQuery>,
-) -> Result<Json<PaginationResult<Submission>>, AppError> {
-    let result: PaginationResult<Submission> = state.db_postgres.get_submissions_paginated(
+) -> Result<Json<PaginationResult>, AppError> {
+    let result: PaginationResult = state.db_postgres.get_submissions_paginated(
         pagination.page.try_into().unwrap(),
         pagination.per_page.try_into().unwrap()
     )

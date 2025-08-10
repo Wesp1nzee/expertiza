@@ -2,23 +2,29 @@ import { NOTIFICATION_TYPES, CONFIG } from '../config/constants.js';
 
 class NotificationService {
   constructor() {
-    this.notificationElement = null;
+    this.notifications = [];
+    this.container = null;
     this.init();
   }
 
   init() {
-    this.notificationElement = document.getElementById('copiedNotification');
-    if (!this.notificationElement) {
-      console.warn('Notification element not found');
+    // Создаем контейнер для уведомлений если его нет
+    this.container = document.getElementById('notifications-container');
+    if (!this.container) {
+      this.container = document.createElement('div');
+      this.container.id = 'notifications-container';
+      this.container.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        pointer-events: none;
+      `;
+      document.body.appendChild(this.container);
     }
   }
 
   show(message, type = NOTIFICATION_TYPES.SUCCESS) {
-    if (!this.notificationElement) {
-      console.error('Notification element not available');
-      return;
-    }
-
     const iconMap = {
       [NOTIFICATION_TYPES.ERROR]: 'exclamation-circle',
       [NOTIFICATION_TYPES.SUCCESS]: 'check-circle',
@@ -33,20 +39,57 @@ class NotificationService {
       [NOTIFICATION_TYPES.WARNING]: '#ff9800'
     };
 
-    // Обновляем содержимое
-    this.notificationElement.innerHTML = `
+    // Создаем новый элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = 'dynamic-notification';
+    notification.innerHTML = `
       <i class="fas fa-${iconMap[type]}"></i> ${message}
     `;
 
-    // Устанавливаем цвет
-    this.notificationElement.style.backgroundColor = colorMap[type];
-    this.notificationElement.style.opacity = 0;
+    // Применяем стили
+    notification.style.cssText = `
+      background: ${colorMap[type]};
+      color: white;
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 14px;
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      opacity: 0;
+    `;
 
-    // Перезапуск анимации
-    this.notificationElement.style.animation = 'none';
+    // Добавляем в контейнер
+    this.container.appendChild(notification);
+    this.notifications.push(notification);
+
+    // Анимация появления
     setTimeout(() => {
-      this.notificationElement.style.animation = `fadeInOut ${CONFIG.UI.NOTIFICATION_DURATION}ms ease`;
+      notification.style.transform = 'translateX(0)';
+      notification.style.opacity = '1';
     }, 10);
+
+    // Автоматическое скрытие
+    setTimeout(() => {
+      this.hideNotification(notification);
+    }, CONFIG.UI.NOTIFICATION_DURATION || 3000);
+  }
+
+  hideNotification(notification) {
+    notification.style.transform = 'translateX(100%)';
+    notification.style.opacity = '0';
+
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+      const index = this.notifications.indexOf(notification);
+      if (index > -1) {
+        this.notifications.splice(index, 1);
+      }
+    }, 300);
   }
 
   success(message) {
@@ -63,6 +106,13 @@ class NotificationService {
 
   warning(message) {
     this.show(message, NOTIFICATION_TYPES.WARNING);
+  }
+
+  // Метод для скрытия всех уведомлений
+  clearAll() {
+    this.notifications.forEach(notification => {
+      this.hideNotification(notification);
+    });
   }
 }
 

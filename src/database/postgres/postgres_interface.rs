@@ -43,7 +43,7 @@ impl PostgresDatabase {
             submission.message,
             submission.created_at,
             submission.status,
-            submission.admin_comments // добавляем admin_comments
+            submission.admin_comments 
         )
         .fetch_one(&self.pool)
         .await?;
@@ -57,7 +57,7 @@ impl PostgresDatabase {
     &self,
     page: i64,
     per_page: i64,
-) -> Result<PaginationResult<Submission>> {
+) -> Result<PaginationResult> {
     let page = page.max(1);
     let per_page = per_page.clamp(1, 10); 
     let offset = (page - 1) * per_page;

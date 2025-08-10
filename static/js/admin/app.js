@@ -1,4 +1,3 @@
-// app.js - Главный файл приложения
 import { AdminDashboardController } from './controllers/AdminDashboardController.js';
 
 class App {
