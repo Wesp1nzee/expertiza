@@ -28,7 +28,9 @@ pub struct AdminErrorResponse {
 #[derive(Debug, Deserialize)]
 pub struct PaginationQuery {
     page: usize,
-    per_page: usize
+    per_page: usize,
+    sort_by: Option<String>,
+    order: Option<String>
 }
 
 #[derive(Debug, Serialize)]
@@ -37,14 +39,16 @@ pub struct AdminSuccessResponse {
     submission_id: String,
 }
 
-// /api/v1/admin/dashboard-page?page=1&per_page=20
+// /api/v1/admin/dashboard-page?page=1&per_page=10&sort_by=date&order=desc
 pub async fn post_admin_dashboard(
     State(state): State<AppState>,
     pagination: axum::extract::Query<PaginationQuery>,
 ) -> Result<Json<PaginationResult>, AppError> {
     let result: PaginationResult = state.db_postgres.get_submissions_paginated(
         pagination.page.try_into().unwrap(),
-        pagination.per_page.try_into().unwrap()
+        pagination.per_page.try_into().unwrap(),
+        pagination.sort_by.as_deref(),
+        pagination.order.as_deref()
     )
     .await
     .map_err(AppError::DatabaseError)?;

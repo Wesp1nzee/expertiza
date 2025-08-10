@@ -10,6 +10,7 @@ import { StatsPanel } from '../components/StatsPanel.js';
 import { EventBus } from '../utils/eventBus.js';
 import { CONFIG } from '../config/constants.js';
 
+
 export class AdminDashboardController {
   constructor() {
     this.isInitialized = false;
@@ -22,6 +23,7 @@ export class AdminDashboardController {
     try {
       this.initializeComponents();
       this.bindEvents();
+      this.initSortHandlers(); // Добавьте эту строку
       await this.loadInitialData();
       this.isInitialized = true;
       
@@ -41,6 +43,7 @@ export class AdminDashboardController {
       this.components.addClientModal = new AddClientModal();
       this.components.searchBox = new SearchBox();
       this.components.statsPanel = new StatsPanel();
+      this.currentSort = { sortBy: null, order: null };
 
       console.log('All components initialized');
     } catch (error) {
@@ -65,7 +68,8 @@ export class AdminDashboardController {
     EventBus.on('submission:status-change', this.handleStatusChange.bind(this));
     EventBus.on('search:query', this.handleSearch.bind(this));
     EventBus.on('client:save', this.handleClientSave.bind(this));
-
+    EventBus.on('table:sort', this.handleTableSort.bind(this));
+  
     // События от API
     EventBus.on('api:error', this.handleApiError.bind(this));
   }
@@ -74,16 +78,20 @@ export class AdminDashboardController {
     await this.loadData(CONFIG.PAGINATION.DEFAULT_PAGE);
   }
 
-  async loadData(page) {
+  async loadData(page, sort = {}) {
     try {
       submissionStore.setLoading(true);
       this.components.table.renderLoading();
 
-      const result = await apiService.fetchSubmissions(page, CONFIG.PAGINATION.PAGE_SIZE);
-      
+      const sortBy = (sort && typeof sort.sortBy !== 'undefined') ? sort.sortBy : this.currentSort.sortBy;
+      const order  = (sort && typeof sort.order !== 'undefined') ? sort.order : this.currentSort.order;
+
+      const result = await apiService.fetchSubmissions(page, CONFIG.PAGINATION.PAGE_SIZE, { sortBy, order });
+
       if (result) {
         submissionStore.updateState(result);
         submissionStore.setCurrentPage(page);
+        this.currentSort = { sortBy: sortBy ?? null, order: order ?? null };
       } else {
         throw new Error('No data received');
       }
@@ -91,6 +99,8 @@ export class AdminDashboardController {
       console.error('Error loading data:', error);
       this.components.table.renderError();
       notificationService.error('Ошибка загрузки данных');
+    } finally {
+      submissionStore.setLoading(false);
     }
   }
 
@@ -135,6 +145,40 @@ export class AdminDashboardController {
     }
     
     await this.loadData(page);
+  }
+
+  initSortHandlers() {
+    // Делегирование событий для динамически создаваемых кнопок
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.sort-btn')) {
+        e.preventDefault();
+        
+        const button = e.target.closest('.sort-btn');
+        const sortBy = button.dataset.sort;
+        let order = button.dataset.order;
+        
+        // Переключаем порядок сортировки
+        order = order === 'asc' ? 'desc' : 'asc';
+        button.dataset.order = order;
+        
+        // Обновляем иконки
+        this.updateSortIcons(button, order);
+        
+        // Вызываем обработчик сортировки напрямую
+        this.handleTableSort({ sortBy, order });
+      }
+    });
+  }
+  
+  updateSortIcons(activeButton, order) {
+    // Сбрасываем все иконки
+    document.querySelectorAll('.sort-btn i').forEach(icon => {
+      icon.className = 'fas fa-sort';
+    });
+    
+    // Устанавливаем активную иконку
+    const icon = activeButton.querySelector('i');
+    icon.className = order === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
   }
 
   handleSubmissionView(submissionId) {
@@ -214,6 +258,18 @@ export class AdminDashboardController {
         notificationService.error('Произошла ошибка при обращении к серверу');
     }
   }
+
+  async handleTableSort({ sortBy, order }) {
+    try {
+      await this.loadData(CONFIG.PAGINATION.DEFAULT_PAGE, { sortBy, order });
+
+      console.log(`Loaded page 1 sorted by ${sortBy} ${order}`);
+    } catch (err) {
+      console.error('Error while handling table sort:', err);
+      notificationService.error('Не удалось применить сортировку');
+    }
+  }
+
 
   // Публичные методы для внешнего управления
   async refresh() {

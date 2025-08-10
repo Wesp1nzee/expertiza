@@ -8,7 +8,7 @@ export const CONFIG = {
     }
   },
   PAGINATION: {
-    PAGE_SIZE: 20,
+    PAGE_SIZE: 10,
     DEFAULT_PAGE: 1
   },
   UI: {
@@ -39,3 +39,4 @@ export const NOTIFICATION_TYPES = {
   INFO: 'info',
   WARNING: 'warning'
 };
+

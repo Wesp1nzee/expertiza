@@ -52,37 +52,67 @@ impl PostgresDatabase {
         Ok(saved_submission)
     }
 
-    /// Получает заявки с пагинацией
     pub async fn get_submissions_paginated(
-    &self,
-    page: i64,
-    per_page: i64,
-) -> Result<PaginationResult> {
-    let page = page.max(1);
-    let per_page = per_page.clamp(1, 10); 
-    let offset = (page - 1) * per_page;
+        &self,
+        page: i64,
+        per_page: i64,
+        sort_by: Option<&str>,
+        sort_order: Option<&str>,
+    ) -> Result<PaginationResult> {
+        let page = page.max(1);
+        let per_page = per_page.clamp(1, 10);
+        let offset = (page - 1) * per_page;
 
-    let total_count_query = "SELECT COUNT(*) as count FROM submissions";
-    let total_count: i64 = sqlx::query(total_count_query)
-        .fetch_one(&self.pool)
-        .await?
-        .get("count");
+        // 1) Общий подсчёт (можно оптимизировать одним запросом с WINDOW, но оставлю явный COUNT)
+        let total_count_query = "SELECT COUNT(*) as count FROM submissions";
+        let total_count: i64 = sqlx::query(total_count_query)
+            .fetch_one(&self.pool)
+            .await?
+            .get("count");
 
-    let data_query = "
-        SELECT *
-        FROM submissions
-        LIMIT $1
-        OFFSET $2
-    ";
+        // 2) Валидация/нормализация sort_by и sort_order (WHITELIST!)
+        // Разрешённые колонки — явно перечисляем
+        let sort_col = sort_by
+            .map(|s| s.trim().to_lowercase())
+            .unwrap_or_else(|| "created_at".to_string());
 
-    let submissions = sqlx::query_as::<_, Submission>(data_query)
-        .bind(per_page)
-        .bind(offset)
-        .fetch_all(&self.pool)
-        .await?;
+        // маппинг допустимых псевдонимов к реальным именам колонок
+        let sort_column = match sort_col.as_str() {
+            "created_at" | "created" | "date" => "created_at",
+            "name" => "name",
+            "email" => "email",
+            "status" => "status",
+            "submission_id" | "id" => "submission_id",
+            _ => "created_at", // default
+        };
 
-    Ok(PaginationResult::new(submissions, total_count, page, per_page))
-}
+        let order = sort_order
+            .map(|o| o.trim().to_lowercase())
+            .unwrap_or_else(|| "desc".to_string());
+
+        let order_dir = match order.as_str() {
+            "asc" => "ASC",
+            "desc" => "DESC",
+            _ => "DESC",
+        };
+
+        // 3) Строим безопасный SQL: колонки и направление вставляем только после whitelist
+        let data_query = format!(
+            "SELECT * FROM submissions
+            ORDER BY {} {}
+            LIMIT $1 OFFSET $2",
+            sort_column, order_dir
+        );
+
+        let submissions = sqlx::query_as::<_, Submission>(&data_query)
+            .bind(per_page)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(PaginationResult::new(submissions, total_count, page, per_page))
+    }
+
 
 
     /// Получает статистику базы данных

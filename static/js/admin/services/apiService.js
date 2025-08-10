@@ -36,16 +36,27 @@ class ApiService {
     }
   }
 
-  async fetchSubmissions(page, perPage) {
-    try {
-      return await this.request(
-        `${CONFIG.API.ENDPOINTS.SUBMISSIONS}?page=${page}&per_page=${perPage}`,
-        { method: 'POST' }
-      );
-    } catch (error) {
-      throw new Error('Ошибка загрузки данных');
-    }
+  async fetchSubmissions(page, perPage, { sortBy, order } = {}) {
+  try {
+    // Собираем параметры запроса безопасно
+    const params = new URLSearchParams({
+      page: String(page),
+      per_page: String(perPage)
+    });
+
+    if (sortBy) params.append('sort_by', sortBy);
+    if (order)  params.append('order', order);
+
+    // Вызов request с query-string. Метод оставлен POST для совместимости с текущей реализацией.
+    return await this.request(
+      `${CONFIG.API.ENDPOINTS.SUBMISSIONS}?${params.toString()}`,
+      { method: 'POST' }
+    );
+  } catch (error) {
+    throw new Error('Ошибка загрузки данных');
   }
+}
+
 
   async updateSubmissionStatus(submissionId, status) {
     try {
