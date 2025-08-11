@@ -42,7 +42,7 @@ pub struct AdminClaims {
 
 #[derive(Debug, Serialize)]
 pub struct AdminUser {
-    pub id: String,
+    pub id: Uuid,
     pub username: String,
     pub role: String,
 }
@@ -171,25 +171,28 @@ async fn clear_failed_attempts(state: &AppState, username: &str) -> Result<(), A
 
 /// Аутентификация админа по данным из .env
 async fn authenticate_admin(state: &AppState, username: &str, password: &str) -> Result<AdminUser, AppError> {
-    let admin_username = state.admin_username.clone();
-    let admin_password_hash = state.admin_password_hash.clone();
-    // Проверка имени пользователя
-    if username != admin_username {
-        return Err(AppError::unauthorized("Invalid credentials"));
-    }
+    let admin_password_opt = state.db_postgres.get_admin_password(username).await?;
 
-    // Проверка пароля
-    let is_valid = verify(password, &admin_password_hash)?;
-    if !is_valid {
-        return Err(AppError::unauthorized("Invalid credentials"));
-    }
+    if let Some((id, password_hash)) = admin_password_opt {
+        println!("\npasswor {}", password_hash);
 
-    Ok(AdminUser {
-        id: Uuid::new_v4().to_string(),
-        username: admin_username,
-        role: "admin".to_string(),
-    })
+        match verify(&password, password_hash.as_str()) {
+            Ok(true) => {
+                Ok(AdminUser {
+                    id,
+                    username: username.to_string(),
+                    role: "admin".to_string(),
+                })
+            }
+            Ok(false) | Err(_) => {
+                Err(AppError::unauthorized("Invalid credentials"))
+            }
+        }
+    } else {
+        Err(AppError::unauthorized("Invalid credentials"))
+    }
 }
+
 
 /// Создание JWT токенов
 async fn create_admin_tokens(state: &AppState, admin: &AdminUser, session_id: &str) -> Result<(String, String), AppError> {
@@ -198,7 +201,7 @@ async fn create_admin_tokens(state: &AppState, admin: &AdminUser, session_id: &s
     
     // Access token
     let access_claims = AdminClaims {
-        sub: admin.id.clone(),
+        sub: admin.id.to_string(),
         iat: now,
         exp: now + ACCESS_TOKEN_EXPIRY,
         jti: Uuid::new_v4().to_string(),
@@ -208,7 +211,7 @@ async fn create_admin_tokens(state: &AppState, admin: &AdminUser, session_id: &s
 
     // Refresh token
     let refresh_claims = AdminClaims {
-        sub: admin.id.clone(),
+        sub: admin.id.to_string(),
         iat: now,
         exp: now + REFRESH_TOKEN_EXPIRY,
         jti: Uuid::new_v4().to_string(),

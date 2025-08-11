@@ -11,7 +11,6 @@ pub struct Submission {
     pub message: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub status: String,
-    pub admin_comments: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -62,14 +61,13 @@ impl CreateSubmissionRequest {
     pub fn into_submission(self) -> Submission {
         let now = chrono::Utc::now();
         Submission {
-            submission_id: Uuid::new_v4(),
+            submission_id: self.submission_id,
             name: self.name,
             email: self.email,
             phone: self.phone,
             message: self.message,
             created_at: now,
-            status: "new".to_string(),
-            admin_comments: Some(String::new()),
+            status: "new".to_string()
         }
     }
 }

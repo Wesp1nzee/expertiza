@@ -28,30 +28,27 @@ impl PostgresDatabase {
         Ok(())
     }
     
-    pub async fn save_submission(&self, request: CreateSubmissionRequest) -> Result<Submission> {
+    pub async fn save_submission(&self, request: CreateSubmissionRequest) -> Result<()> {
         let submission = request.into_submission();
 
-        let saved_submission = sqlx::query_as!(
-            Submission,
-            r#"
-            INSERT INTO submissions (submission_id, name, email, phone, message, created_at, status, admin_comments)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *
-            "#,
-            submission.submission_id,
-            submission.name,
-            submission.email,
-            submission.phone,
-            submission.message,
-            submission.created_at,
-            submission.status,
-            submission.admin_comments 
+        sqlx::query(
+            "
+            INSERT INTO submissions (submission_id, name, email, phone, message, created_at, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            "
         )
-        .fetch_one(&self.pool)
+        .bind(submission.submission_id)
+        .bind(submission.name)
+        .bind(submission.email)
+        .bind(submission.phone)
+        .bind(submission.message)
+        .bind(submission.created_at)
+        .bind(submission.status)
+        .execute(&self.pool)
         .await?;
 
-        info!("Submission saved: {}", saved_submission.submission_id);
-        Ok(saved_submission)
+        info!("Submission saved: {}", submission.submission_id);
+        Ok(())
     }
 
     pub async fn get_submissions_paginated(
@@ -140,22 +137,33 @@ impl PostgresDatabase {
         submission_id: Uuid,
         status: String,
     ) -> Result<()> {  
-        let updated_submission = sqlx::query_as!(
-            Submission,
+        let updated_submission =         sqlx::query(
             r#"
             UPDATE submissions
             SET status = $1
             WHERE submission_id = $2
-            RETURNING *
+            RETURNING submission_id
             "#,
-            status,
-            submission_id
         )
+        .bind(status)
+        .bind(submission_id)
         .fetch_one(&self.pool)
-        .await
-        .map_err(DatabaseError::from)?; 
+        .await?;
 
-        info!("Submission updated: {}", updated_submission.submission_id);
+        info!("Submission updated: {}", updated_submission.get::<Uuid, _>("submission_id"));
         Ok(())
+    }
+
+    pub async fn get_admin_password(&self, admin_name: &str) -> Result<Option<(Uuid, String)>> {
+        let result = sqlx::query(
+            r#"
+            SELECT id, password FROM admin WHERE username = $1
+            "#
+        )
+        .bind(admin_name)
+        .fetch_optional(&self.pool)
+        .await?;
+    
+        Ok(result.map(|row| (row.get("id"), row.get("password"))))
     }
 }

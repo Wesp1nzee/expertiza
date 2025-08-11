@@ -75,16 +75,6 @@ BEGIN
             ADD CONSTRAINT check_status_valid
             CHECK (status IN ('new', 'in_progress', 'completed', 'cancelled', 'rejected'));
     END IF;
-    
-    -- Phone format validation (optional but recommended)
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'check_phone_format'
-    ) THEN
-        ALTER TABLE submissions
-            ADD CONSTRAINT check_phone_format
-            CHECK (phone IS NULL OR phone ~* '^\+?[1-9]\d{1,14}$');
-    END IF;
 END;
 $$;
 

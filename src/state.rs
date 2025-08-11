@@ -6,7 +6,5 @@ use crate::database::postgres::postgres_interface::PostgresDatabase;
 pub struct AppState {
     pub db_postgres: Arc<PostgresDatabase>,
     pub db_redis: Arc<RedisDatabase>,
-    pub jwt_secret: String,
-    pub admin_username: String,
-    pub admin_password_hash: String,
+    pub jwt_secret: String
 }

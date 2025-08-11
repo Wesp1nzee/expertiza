@@ -79,8 +79,6 @@ pub async fn setup_app_state(config: &Config) -> Result<AppState, Box<dyn std::e
     let db_postgres = setup_postgres(&config.database_url).await?;
 
     let jwt_secret = config.jwt_secret.clone();
-    let admin_username = config.admin_username.clone();
-    let admin_password_hash = config.admin_password_hash.clone();
     
     info!("Running database migrations");
     db_postgres.migrate().await?;
@@ -89,9 +87,7 @@ pub async fn setup_app_state(config: &Config) -> Result<AppState, Box<dyn std::e
     let shared_state = AppState { 
         db_postgres: Arc::new(db_postgres),
         db_redis: Arc::new(db_redis),
-        jwt_secret,
-        admin_username,
-        admin_password_hash
+        jwt_secret
     };
     
     Ok(shared_state)
