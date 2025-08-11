@@ -202,12 +202,9 @@ tr:hover td {
     transition: transform 0.3s;
 }
 
-.sort-btn[data-order="asc"] i {
-    transform: rotate(0deg);
-}
-
-.sort-btn[data-order="desc"] i {
-    transform: rotate(180deg);
+.sort-btn i.fa-sort-up,
+.sort-btn i.fa-sort-down {
+    color: var(--primary); 
 }
 
 #addClientBtn {
