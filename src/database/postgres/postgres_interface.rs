@@ -3,6 +3,7 @@ use super::models::*;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 use tracing::info;
+
 pub struct PostgresDatabase {
     pool: PgPool,
 }
@@ -21,7 +22,8 @@ impl PostgresDatabase {
     pub async fn migrate(&self) -> Result<()> {
         sqlx::migrate!("./migrations")
             .run(&self.pool)
-            .await?;
+            .await
+            .map_err(|e| DatabaseError::Migration(e))?;
 
         Ok(())
     }
@@ -63,20 +65,17 @@ impl PostgresDatabase {
         let per_page = per_page.clamp(1, 10);
         let offset = (page - 1) * per_page;
 
-        // 1) Общий подсчёт (можно оптимизировать одним запросом с WINDOW, но оставлю явный COUNT)
         let total_count_query = "SELECT COUNT(*) as count FROM submissions";
         let total_count: i64 = sqlx::query(total_count_query)
             .fetch_one(&self.pool)
             .await?
             .get("count");
 
-        // 2) Валидация/нормализация sort_by и sort_order (WHITELIST!)
-        // Разрешённые колонки — явно перечисляем
+
         let sort_col = sort_by
             .map(|s| s.trim().to_lowercase())
             .unwrap_or_else(|| "created_at".to_string());
 
-        // маппинг допустимых псевдонимов к реальным именам колонок
         let sort_column = match sort_col.as_str() {
             "created_at" | "created" | "date" => "created_at",
             "name" => "name",
@@ -96,7 +95,6 @@ impl PostgresDatabase {
             _ => "DESC",
         };
 
-        // 3) Строим безопасный SQL: колонки и направление вставляем только после whitelist
         let data_query = format!(
             "SELECT * FROM submissions
             ORDER BY {} {}
@@ -115,7 +113,6 @@ impl PostgresDatabase {
 
 
 
-    /// Получает статистику базы данных
     pub async fn get_statistics(&self) -> Result<DatabaseStats> {
         let stats = sqlx::query!(
             r#"
