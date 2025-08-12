@@ -73,7 +73,7 @@ BEGIN
     ) THEN
         ALTER TABLE submissions
             ADD CONSTRAINT check_status_valid
-            CHECK (status IN ('new', 'in_progress', 'completed', 'cancelled', 'rejected'));
+            CHECK (status IN ('new', 'viewed', 'in_progress', 'completed', 'rejected'));
     END IF;
 END;
 $$;
