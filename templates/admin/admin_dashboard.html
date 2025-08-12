@@ -227,6 +227,20 @@
                 <div class="message-content" id="modal-message">
                 </div>
             </div>
+            <div class="admin-comment-section">
+                <h4><i class="fas fa-comment-medical"></i> Комментарий администратора</h4>
+                <textarea id="adminCommentInput" class="admin-comment-input" placeholder="Введите ваш комментарий..."></textarea>
+                <div class="admin-comment-actions">
+                    <button class="btn btn-primary" id="saveAdminCommentBtn">Сохранить комментарий</button>
+                </div>
+            </div>
+            
+            <div class="admin-comments-container">
+                <h4><i class="fas fa-history"></i> История комментариев</h4>
+                <div id="adminCommentsList" class="admin-comments-list">
+                    <!-- Комментарии будут загружаться динамически -->
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-outline"><i class="fas fa-reply"></i> Ответить</button>

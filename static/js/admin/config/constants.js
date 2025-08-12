@@ -4,7 +4,9 @@ export const CONFIG = {
     ENDPOINTS: {
       SUBMISSIONS: '/dashboard-page',
       UPDATE_STATUS: '/update-submission-status',
-      ADD_SUBMISSION: '/add-submissions'
+      ADD_SUBMISSION: '/add-submissions',
+      ADD_COMMENTS: '/create-submissions-comment',
+      GET_COMMENTS: '/get-submissions-comment'
     }
   },
   PAGINATION: {

@@ -44,7 +44,7 @@ BEGIN
         WHERE conname = 'check_name_length'
     ) THEN
         ALTER TABLE submissions ADD CONSTRAINT check_name_length 
-            CHECK (length(trim(name)) >= 1);
+            CHECK (length(trim(name)) >= 2);
     END IF;
     
     -- Message validation

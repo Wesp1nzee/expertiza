@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 pub struct Submission {
@@ -70,4 +71,17 @@ impl CreateSubmissionRequest {
             status: "new".to_string()
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubmissionComment {
+    pub comment_id: Uuid,
+    pub comment: String,
+    pub created_at: DateTime<Utc>,
+    pub admin_name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubmissionCommentsRequest {
+    pub data: Vec<SubmissionComment>,
 }

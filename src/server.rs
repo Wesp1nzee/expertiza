@@ -34,6 +34,8 @@ use crate::routers::admin::{
         post_admin_dashboard, 
         get_admin_statistics, 
         update_admin_status,
+        get_submission_comments,
+        crate_submission_comment
     },
 };
 use crate::middleware::{security_headers_middleware, rate_limit_middleware};
@@ -66,6 +68,8 @@ fn setup_routes_admin() -> Router<AppState> {
         .route("/api/v1/add-submissions", post(create_contact_submission))
         .route("/api/v1/dashboard-page", post(post_admin_dashboard))
         .route("/api/v1/dashboard-stats", get(get_admin_statistics))
+        .route("/api/v1/get-submissions-comment", post(get_submission_comments))
+        .route("/api/v1/create-submissions-comment", post(crate_submission_comment))
 }
 
 fn setup_routes_client() -> Router<AppState> {

@@ -3,13 +3,15 @@ use axum::{
     response::{Json, IntoResponse},
     extract::{Json as ExtractJson, State},
 };
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use axum_extra::extract::cookie::{CookieJar, Cookie, SameSite};
 use serde::{Deserialize, Serialize};
 use tracing::info;
+use uuid::Uuid;
 use crate::state::AppState;
 use crate::database::postgres::models::{PaginationResult, DatabaseStats};
 use crate::error::AppError;
-use crate::database::postgres::models::CreateSubmissionRequest;
-
+use crate::database::postgres::models::{CreateSubmissionRequest, SubmissionCommentsRequest};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AdminContactSubmission {
@@ -64,7 +66,6 @@ pub async fn get_admin_statistics(
 
     Ok(Json(result))
 }
-
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct UpdateViewedParams {
@@ -137,4 +138,113 @@ pub async fn create_contact_submission(
             submission_id: submission_id.to_string(),
         }),
     ).into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateAdminComment {
+    pub submissions_id: Uuid,
+    pub text: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AdminTokenClaims {
+    sub: String,    // Здесь хранится admin_id
+    iat: i64,
+    exp: i64,
+    jti: String,
+    role: String,
+    session_id: String,
+}
+
+// /api/v1/admin/create-submissions-comment
+pub async fn crate_submission_comment(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    ExtractJson(data): ExtractJson<CreateAdminComment>,
+) -> impl IntoResponse {
+    let cookie_value = match jar.get("__Secure-admin-session") {
+        Some(cookie) => cookie.value().to_owned(),
+        None => {
+            tracing::warn!("Missing session cookie");
+            return (StatusCode::UNAUTHORIZED, "Missing session cookie").into_response();
+        }
+    };
+
+    let mut tokens = cookie_value.split(':');
+    let access_token = match tokens.next() {
+        Some(token) => token.trim(),
+        None => {
+            tracing::error!("Invalid cookie format: no access token");
+            return (StatusCode::UNAUTHORIZED, "Invalid session format").into_response();
+        }
+    };
+
+    let token_data = match decode::<AdminTokenClaims>(
+        access_token,
+        &DecodingKey::from_secret(state.jwt_secret.as_ref()),
+        &Validation::new(Algorithm::HS256),
+    ) {
+        Ok(data) => data,
+        Err(e) => {
+            
+            let msg = match e.kind() {
+                jsonwebtoken::errors::ErrorKind::InvalidToken => "Invalid token format",
+                jsonwebtoken::errors::ErrorKind::InvalidSignature => "Invalid signature",
+                jsonwebtoken::errors::ErrorKind::ExpiredSignature => "Token expired",
+                jsonwebtoken::errors::ErrorKind::InvalidIssuer => "Invalid issuer",
+                jsonwebtoken::errors::ErrorKind::InvalidAudience => "Invalid audience",
+                _ => "Invalid token",
+            };
+            
+            return (StatusCode::UNAUTHORIZED, msg).into_response();
+        }
+    };
+
+    // 5. Парсинг UUID администратора
+    let admin_id = match Uuid::parse_str(&token_data.claims.sub) {
+        Ok(id) => id,
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED, "Invalid admin ID").into_response();
+        }
+    };
+    // 7. Создание комментария в базе данных
+    match state
+        .db_postgres
+        .create_admin_comments(admin_id, data.submissions_id, data.text)
+        .await
+    {
+        Ok(_) => StatusCode::CREATED.into_response(),
+        Err(e) => {
+            tracing::error!(
+                "DB error for admin {}: {:?}",
+                admin_id,
+                e
+            );
+            
+            let msg = if e.to_string().contains("foreign key constraint") {
+                "Invalid submission ID"
+            } else {
+                "Internal server error"
+            };
+            
+            (StatusCode::INTERNAL_SERVER_ERROR, msg).into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct GetAdminComments { 
+    pub submissions_id: Uuid
+}
+
+// /api/v1/admin/get-submissions-comment
+pub async fn get_submission_comments(
+    State(state): State<AppState>,
+    ExtractJson(params): ExtractJson<GetAdminComments>,
+) -> Result<impl IntoResponse, AppError> {
+    let submission_comments = state.db_postgres
+        .get_admin_comments(params.submissions_id)
+        .await?;
+    println!("{:?}", submission_comments);
+    Ok((StatusCode::OK, Json(submission_comments)))
 }

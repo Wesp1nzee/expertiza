@@ -137,7 +137,7 @@ impl PostgresDatabase {
         submission_id: Uuid,
         status: String,
     ) -> Result<()> {  
-        let updated_submission =         sqlx::query(
+        let updated_submission = sqlx::query(
             r#"
             UPDATE submissions
             SET status = $1
@@ -165,5 +165,51 @@ impl PostgresDatabase {
         .await?;
     
         Ok(result.map(|row| (row.get("id"), row.get("password"))))
+    }
+
+    pub async fn create_admin_comments(&self, admin_id: Uuid, submissions_id: Uuid, text: String) -> Result<()> {
+        sqlx::query(    
+            r#"
+            INSERT INTO admin_comments (admin_id, submission_id, comment)
+            VALUES ($1, $2, $3)
+            "#
+        )
+        .bind(admin_id)
+        .bind(submissions_id)
+        .bind(text)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_admin_comments(&self, submissions_id: Uuid) -> Result<SubmissionCommentsRequest> {
+        let rows = sqlx::query(
+            r#"
+            SELECT 
+                ac.id as comment_id,
+                ac.comment,
+                ac.created_at,
+                a.username as admin_name
+            FROM admin_comments ac
+            JOIN admin a ON ac.admin_id = a.id
+            WHERE ac.submission_id = $1
+            ORDER BY ac.created_at ASC
+            "#
+        )
+        .bind(submissions_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let comments = rows
+            .into_iter()
+            .map(|row| SubmissionComment {
+                comment_id: row.get("comment_id"),
+                comment: row.get("comment"),
+                created_at: row.get("created_at"),
+                admin_name: row.get("admin_name"),
+            })
+            .collect();
+
+        Ok(SubmissionCommentsRequest { data: comments })
     }
 }

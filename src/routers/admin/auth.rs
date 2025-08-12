@@ -62,6 +62,15 @@ pub async fn admin_login_handler(
     jar: CookieJar,
     Json(payload): Json<AdminLoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+
+    let admin_login = payload.username.trim();
+    let admin_password = payload.password.trim();
+
+    if admin_login.is_empty() || admin_password.is_empty() {
+        increment_failed_attempts(&state, &payload.username).await?;
+        return Err(AppError::bad_request("Username and password are required"));
+    }
+
     let conn = state
         .db_redis
         .get_connection()
@@ -83,15 +92,8 @@ pub async fn admin_login_handler(
 
     csrf.validate_csrf_token(session_id, csrf_token).await?;
 
-    check_rate_limit(&state, &payload.username).await?;
-
-    if payload.username.trim().is_empty() || payload.password.is_empty() {
-        increment_failed_attempts(&state, &payload.username).await?;
-        return Err(AppError::bad_request("Username and password are required"));
-    }
-
-    let admin_user = authenticate_admin(&state, &payload.username, &payload.password).await?;
-
+    check_rate_limit(&state, &admin_login).await?;
+    let admin_user: AdminUser = authenticate_admin(&state, &admin_login, &admin_password).await?;
     let session_id = Uuid::new_v4().to_string();
     let (access_token, refresh_token) = create_admin_tokens(&state, &admin_user, &session_id).await?;
 
@@ -99,7 +101,7 @@ pub async fn admin_login_handler(
     save_admin_session(&state, &session_id, &admin_user, &access_token, &refresh_token).await?;
 
     // Clearing the failed login attempts counter
-    clear_failed_attempts(&state, &payload.username).await?;
+    clear_failed_attempts(&state, &admin_login).await?;
 
     let cookie_value = format!("{}:{}", access_token, refresh_token);
     let secure_cookie = format!(
@@ -169,7 +171,7 @@ async fn clear_failed_attempts(state: &AppState, username: &str) -> Result<(), A
     Ok(())
 }
 
-/// Аутентификация админа по данным из .env
+/// Аутентификация админа
 async fn authenticate_admin(state: &AppState, username: &str, password: &str) -> Result<AdminUser, AppError> {
     let admin_password_opt = state.db_postgres.get_admin_password(username).await?;
 
@@ -227,7 +229,7 @@ async fn create_admin_tokens(state: &AppState, admin: &AdminUser, session_id: &s
     Ok((access_token, refresh_token))
 }
 
-/// Сохранение сессии в Redis
+/// Save session the Redis
 async fn save_admin_session(
     state: &AppState,
     session_id: &str,

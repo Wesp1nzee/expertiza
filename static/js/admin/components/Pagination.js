@@ -44,7 +44,6 @@ export class Pagination {
       return;
     }
 
-    this.show();
     this.updateInfo(paginationData);
     this.updateControls(paginationData);
   }
@@ -95,10 +94,6 @@ export class Pagination {
     }
   }
 
-  show() {
-    // Метод для показа пагинации, если она была скрыта
-    // TODO
-  }
 
   reset() {
     this.currentPagination = null;
