@@ -1,4 +1,3 @@
-// components/Pagination.js
 import { EventBus } from '../utils/eventBus.js';
 
 export class Pagination {

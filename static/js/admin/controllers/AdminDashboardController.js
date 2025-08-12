@@ -10,17 +10,18 @@ import { StatsPanel } from '../components/StatsPanel.js';
 import { EventBus } from '../utils/eventBus.js';
 import { CONFIG } from '../config/constants.js';
 
-
 export class AdminDashboardController {
-  // Initialize controller state and start component initialization
   constructor() {
     this.isInitialized = false;
     this.components = {};
-    
+    this.currentSort = { sortBy: null, order: null };
+
+    this._logoutBtn = null;
+    this._boundHandleLogout = this.handleLogout.bind(this);
+
     this.init();
   }
 
-  // Initialize components, bind events, set up sort handlers and load initial data
   async init() {
     try {
       this.initializeComponents();
@@ -28,7 +29,7 @@ export class AdminDashboardController {
       this.initSortHandlers();
       await this.loadInitialData();
       this.isInitialized = true;
-      
+
       console.log('Admin Dashboard initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Admin Dashboard:', error);
@@ -36,7 +37,6 @@ export class AdminDashboardController {
     }
   }
 
-  // Create and initialize UI components and set initial sort state
   initializeComponents() {
     try {
       this.components.table = new SubmissionTable('submissionsTable');
@@ -54,7 +54,6 @@ export class AdminDashboardController {
     }
   }
 
-  // Register event listeners for store updates, component actions and API errors
   bindEvents() {
     submissionStore.on('submissions:updated', this.handleSubmissionsUpdate.bind(this));
     submissionStore.on('pagination:updated', this.handlePaginationUpdate.bind(this));
@@ -70,16 +69,19 @@ export class AdminDashboardController {
     EventBus.on('search:query', this.handleSearch.bind(this));
     EventBus.on('client:save', this.handleClientSave.bind(this));
     EventBus.on('table:sort', this.handleTableSort.bind(this));
-  
     EventBus.on('api:error', this.handleApiError.bind(this));
+
+    const logoutBtn = document.querySelector('.logout-item');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', this._boundHandleLogout);
+      this._logoutBtn = logoutBtn;
+    }
   }
 
-  // Load the default initial page of submissions
   async loadInitialData() {
     await this.loadData(CONFIG.PAGINATION.DEFAULT_PAGE);
   }
 
-  // Fetch submissions with pagination and sorting, update store and handle loading/errors
   async loadData(page, sort = {}) {
     try {
       submissionStore.setLoading(true);
@@ -106,75 +108,66 @@ export class AdminDashboardController {
     }
   }
 
-  // Render updated submissions into the table
   handleSubmissionsUpdate(submissions) {
     this.components.table.render(submissions);
   }
 
-  // Update pagination component and stats panel from pagination data
   handlePaginationUpdate(pagination) {
     this.components.pagination.update(pagination);
     this.components.statsPanel.updateFromPagination(pagination);
   }
 
-  // Show loading state in the table when store indicates loading
   handleLoadingChange(loading) {
     if (loading) {
       this.components.table.renderLoading();
     }
   }
 
-  // Add a new submission row to the table and update stats
   handleSubmissionAdded(submission) {
     this.components.table.addRow(submission);
     this.components.statsPanel.incrementTotal();
     this.components.statsPanel.incrementToday();
   }
 
-  // Update a submission row in the table and refresh modal data
   handleSubmissionUpdated(submission) {
     this.components.table.updateRow(submission);
     this.components.modal.updateSubmission(submission);
   }
 
-  // Render filtered submissions and show search result count in pagination
   handleSubmissionsFiltered(submissions) {
     this.components.table.render(submissions);
     this.components.pagination.showSearchResult(submissions.length);
   }
 
-  // Handle page change: clear active search filters if needed and load the requested page
   async handlePageChange(page) {
     if (submissionStore.getFilters().search) {
       this.components.searchBox.clear();
       submissionStore.resetFilters();
     }
-    
+
     await this.loadData(page);
   }
 
-  // Attach click listener to sorting buttons and toggle sort order when clicked
   initSortHandlers() {
     document.addEventListener('click', (e) => {
       if (e.target.closest('.sort-btn')) {
         e.preventDefault();
-        
+
         const button = e.target.closest('.sort-btn');
         const sortBy = button.dataset.sort;
         let order = button.dataset.order;
-        
+
         order = order === 'asc' ? 'desc' : 'asc';
-        
+
         this.updateSortIcons(button, order);
-        
+
         button.dataset.order = order;
-        
+
         this.handleTableSort({ sortBy, order });
       }
     });
   }
-  
-  // Reset all sort icons and set the active sort button icon according to order
+
   updateSortIcons(activeButton, order) {
     document.querySelectorAll('.sort-btn').forEach(btn => {
       btn.dataset.order = 'asc';
@@ -183,7 +176,7 @@ export class AdminDashboardController {
         icon.className = 'fas fa-sort';
       }
     });
-    
+
     activeButton.dataset.order = order;
     const activeIcon = activeButton.querySelector('i');
     if (activeIcon) {
@@ -191,7 +184,6 @@ export class AdminDashboardController {
     }
   }
 
-  // Open the submission modal for the provided submission id
   handleSubmissionView(submissionId) {
     const submission = submissionStore.findSubmissionById(submissionId);
     if (submission) {
@@ -199,11 +191,10 @@ export class AdminDashboardController {
     }
   }
 
-  // Update submission status via API, update store on success, revert and notify on failure
   async handleStatusChange({ submissionId, newStatus, originalStatus }) {
     try {
       const success = await apiService.updateSubmissionStatus(submissionId, newStatus);
-      
+
       if (success) {
         submissionStore.updateSubmissionStatus(submissionId, newStatus);
         notificationService.success('Статус успешно обновлен!');
@@ -212,18 +203,17 @@ export class AdminDashboardController {
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      
+
       const submission = submissionStore.findSubmissionById(submissionId);
       if (submission) {
         submission.status = originalStatus;
         this.components.modal.updateSubmission(submission);
       }
-      
+
       notificationService.error('Ошибка обновления статуса');
     }
   }
 
-  // Handle search queries: reload first page if empty, otherwise apply client-side filter
   handleSearch({ term, immediate, isEmpty }) {
     if (isEmpty) {
       this.loadData(CONFIG.PAGINATION.DEFAULT_PAGE);
@@ -232,11 +222,10 @@ export class AdminDashboardController {
     }
   }
 
-  // Send new client submission to API and add the created submission to the store on success
   async handleClientSave(clientData) {
     try {
       const response = await apiService.addSubmission(clientData);
-      
+
       if (response && response.submission_id) {
         const newSubmission = {
           submission_id: response.submission_id,
@@ -257,10 +246,9 @@ export class AdminDashboardController {
     }
   }
 
-  // Handle API errors and present appropriate UI responses based on endpoint
   handleApiError({ endpoint, error }) {
     console.error(`API Error on ${endpoint}:`, error);
-    
+
     switch (endpoint) {
       case CONFIG.API.ENDPOINTS.SUBMISSIONS:
         this.components.table.renderError();
@@ -270,7 +258,6 @@ export class AdminDashboardController {
     }
   }
 
-  // Load the first page with the given sort parameters and handle errors
   async handleTableSort({ sortBy, order }) {
     try {
       await this.loadData(CONFIG.PAGINATION.DEFAULT_PAGE, { sortBy, order });
@@ -282,53 +269,61 @@ export class AdminDashboardController {
     }
   }
 
+  handleLogout(e) {
+    e && e.preventDefault && e.preventDefault();
 
-  // Public method to refresh current page data
+    // Optional: you can use a configured base path if you have one:
+    // const logoutPath = (CONFIG && CONFIG.BASE_PATH) ? `${CONFIG.BASE_PATH}/admin/logout` : '/admin/logout';
+    // window.location.assign(logoutPath);
+
+    // Simple redirect to logout endpoint
+    window.location.assign('/admin/logout');
+  }
+
   async refresh() {
     await this.loadData(submissionStore.getCurrentPage());
   }
 
-  // Public method to navigate to a specific page
   async goToPage(page) {
     await this.loadData(page);
   }
 
-  // Open the modal to add a new client
   openAddClientModal() {
     this.components.addClientModal.open();
   }
 
-  // Clear the search box input
   clearSearch() {
     this.components.searchBox.clear();
   }
 
-  // Return current submissions from the store
   getSubmissions() {
     return submissionStore.getSubmissions();
   }
 
-  // Return statistics from the stats panel component
   getStats() {
     return this.components.statsPanel.getStats();
   }
 
-  // Destroy components, clear store and remove all event handlers
   destroy() {
     Object.values(this.components).forEach(component => {
-      if (component.destroy) {
+      if (component && typeof component.destroy === 'function') {
         component.destroy();
       }
     });
 
     submissionStore.clear();
 
+    if (this._logoutBtn && this._boundHandleLogout) {
+      this._logoutBtn.removeEventListener('click', this._boundHandleLogout);
+      this._logoutBtn = null;
+      this._boundHandleLogout = null;
+    }
+
     EventBus.events = {};
 
     console.log('Admin Dashboard destroyed');
   }
 
-  // Return whether the controller has finished initialization
   isReady() {
     return this.isInitialized;
   }

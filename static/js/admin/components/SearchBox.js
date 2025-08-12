@@ -114,8 +114,6 @@ export class SearchBox {
   }
 
   showSuggestions(suggestions) {
-    // Базовая реализация для показа подсказок
-    // Можно расширить для показа выпадающего списка с подсказками
     EventBus.emit('search:suggestions', suggestions);
   }
 
