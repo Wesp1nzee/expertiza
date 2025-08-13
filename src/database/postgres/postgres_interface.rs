@@ -111,7 +111,7 @@ impl PostgresDatabase {
 
 
     pub async fn get_statistics(&self) -> Result<DatabaseStats> {
-        let stats = sqlx::query!(
+        let stats = sqlx::query(
             r#"
             SELECT 
                 COUNT(*) as total_submissions,
@@ -125,10 +125,10 @@ impl PostgresDatabase {
         .await?;
 
         Ok(DatabaseStats {
-            total_submissions: stats.total_submissions.unwrap_or(0),
-            today_count: stats.today_count.unwrap_or(0),
-            this_week_count: stats.this_week_count.unwrap_or(0),
-            this_month_count: stats.this_month_count.unwrap_or(0),
+            total_submissions: stats.get::<i64, _>("total_submissions"),
+            today_count: stats.get::<i64, _>("today_count"),
+            this_week_count: stats.get::<i64, _>("this_week_count"),
+            this_month_count: stats.get::<i64, _>("this_month_count"),
         })
     }
 
