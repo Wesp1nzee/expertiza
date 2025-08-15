@@ -85,7 +85,7 @@ pub async fn setup_app_state(config: &Config) -> Result<AppState, Box<dyn std::e
     let jwt_secret = config.jwt_secret.clone();
     
     info!("Running database migrations");
-    db_postgres.migrate().await?;
+    db_postgres.migrate(&config.admin_login, &config.admin_password).await?;
     info!("Database migrations completed");
     
     let shared_state = AppState { 

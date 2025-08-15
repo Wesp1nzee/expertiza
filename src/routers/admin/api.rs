@@ -4,14 +4,14 @@ use axum::{
     extract::{Json as ExtractJson, State},
 };
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use axum_extra::extract::cookie::{CookieJar, Cookie, SameSite};
+use axum_extra::extract::cookie::CookieJar;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use uuid::Uuid;
 use crate::state::AppState;
 use crate::database::postgres::models::{PaginationResult, DatabaseStats};
 use crate::error::AppError;
-use crate::database::postgres::models::{CreateSubmissionRequest, SubmissionCommentsRequest};
+use crate::database::postgres::models::CreateSubmissionRequest;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AdminContactSubmission {

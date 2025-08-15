@@ -19,12 +19,23 @@ impl PostgresDatabase {
         Ok(Self { pool })
     }
 
-    pub async fn migrate(&self) -> Result<()> {
+    pub async fn migrate(&self, admin_login: &String, admin_password: &String) -> Result<()> {
         sqlx::migrate!("./migrations")
             .run(&self.pool)
             .await
             .map_err(|e| DatabaseError::Migration(e))?;
 
+        sqlx::query(
+        "
+            INSERT INTO public.admin(username, password)
+            VALUES ($1, $2)
+            ON CONFLICT (username) DO NOTHING;
+            "
+        )
+        .bind(admin_login)
+        .bind(admin_password)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
     

@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = create_app(config.clone()).await?;
     
     let listener: TcpListener = TcpListener::bind(&config.server_address).await?;
-    info!("🚀 Сервер запущен на http://{}", config.server_address);
+    info!("🚀 Starting server http://{}", config.server_address);
     serve(listener, app).await?;
 
     Ok(())

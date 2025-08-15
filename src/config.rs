@@ -6,7 +6,9 @@ pub struct Config {
     pub database_url: String,
     pub redis_url: String,
     pub server_address: String,
-    pub jwt_secret: String
+    pub jwt_secret: String,
+    pub admin_login: String,
+    pub admin_password: String
 }
 
 impl Config {
@@ -23,12 +25,17 @@ impl Config {
             .unwrap_or_else(|_| "127.0.0.1:3000".into());
 
         let jwt_secret = env::var("JWT_SECRET")?;
+
+        let admin_password = env::var("ADMIN_PASSWORD")?;
+        let admin_login = env::var("ADMIN_LOGIN")?;
         
         Ok(Config {
             database_url,
             redis_url,
             server_address,
-            jwt_secret
+            jwt_secret,
+            admin_login,
+            admin_password
         })
     }
 }
